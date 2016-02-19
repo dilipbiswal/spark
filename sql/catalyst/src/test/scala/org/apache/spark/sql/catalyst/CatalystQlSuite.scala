@@ -201,4 +201,16 @@ class CatalystQlSuite extends PlanTest {
     parser.parsePlan("select sum(product + 1) over (partition by (product + (1)) order by 2) " +
       "from windowData")
   }
+
+  test("using clause in JOIN") {
+    parser.parsePlan("select * from t1 join t2 using (c1)")
+    parser.parsePlan("select * from t1 join t2 using (c1, c2)")
+    parser.parsePlan("select * from t1 left join t2 using (c1, c2)")
+    parser.parsePlan("select * from t1 right join t2 using (c1, c2)")
+    parser.parsePlan("select * from t1 full outer join t2 using (c1, c2)")
+    parser.parsePlan("select * from t1 join t2 using (c1) join t3 using (c2)")
+    intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using ()"))
+    intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using (t1.c1)"))
+    intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using (c1) on t1.c1 = t2.c1"))
+  }
 }
