@@ -203,12 +203,17 @@ class CatalystQlSuite extends PlanTest {
   }
 
   test("using clause in JOIN") {
+    // Tests parsing of using clause for different join types.
     parser.parsePlan("select * from t1 join t2 using (c1)")
     parser.parsePlan("select * from t1 join t2 using (c1, c2)")
     parser.parsePlan("select * from t1 left join t2 using (c1, c2)")
     parser.parsePlan("select * from t1 right join t2 using (c1, c2)")
     parser.parsePlan("select * from t1 full outer join t2 using (c1, c2)")
     parser.parsePlan("select * from t1 join t2 using (c1) join t3 using (c2)")
+    // Tests errors
+    // (1) Empty using clause
+    // (2) Qualified columns in using
+    // (3) Both on and using clause
     intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using ()"))
     intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using (t1.c1)"))
     intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using (c1) on t1.c1 = t2.c1"))

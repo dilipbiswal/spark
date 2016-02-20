@@ -531,9 +531,7 @@ https://cwiki.apache.org/confluence/display/Hive/Enhanced+Aggregation%2C+Cube%2C
         Join(nodeToRelation(relation1),
           nodeToRelation(relation2),
           joinType,
-          getJoinCond(other)
-          )
-
+          getJoinCond(other))
       case _ =>
         noParseRule("Relation", node)
     }
@@ -546,8 +544,8 @@ https://cwiki.apache.org/confluence/display/Hive/Enhanced+Aggregation%2C+Cube%2C
           case Token(name, Nil) => name
         }
         Some(UnresolvedUsingAttributes(colNames))
+      /* Join expression specified using ON clause */
       case _ => joinConditionNodes.headOption.map(nodeToExpr)
-
     }
   }
 

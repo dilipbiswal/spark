@@ -21,7 +21,6 @@ import java.math.MathContext
 import java.sql.Timestamp
 
 import org.apache.spark.AccumulatorSuite
-import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.CatalystQl
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
 import org.apache.spark.sql.catalyst.parser.ParserConf
@@ -35,7 +34,6 @@ import org.apache.spark.sql.types._
 
 
 class SQLQuerySuite extends QueryTest with SharedSQLContext {
-
   import testImplicits._
 
   setupTestData()
@@ -126,12 +124,12 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
   }
 
   test("self join with alias in agg") {
-    Seq(1, 2, 3)
-      .map(i => (i, i.toString))
-      .toDF("int", "str")
-      .groupBy("str")
-      .agg($"str", count("str").as("strCount"))
-      .registerTempTable("df")
+      Seq(1, 2, 3)
+        .map(i => (i, i.toString))
+        .toDF("int", "str")
+        .groupBy("str")
+        .agg($"str", count("str").as("strCount"))
+        .registerTempTable("df")
 
     checkAnswer(
       sql(
@@ -189,7 +187,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
   test("grouping on nested fields") {
     sqlContext.read.json(sparkContext.parallelize(
       """{"nested": {"attribute": 1}, "value": 2}""" :: Nil))
-      .registerTempTable("rows")
+     .registerTempTable("rows")
 
     checkAnswer(
       sql(
@@ -242,8 +240,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     if (!hasGeneratedAgg) {
       fail(
         s"""
-           |Codegen is enabled, but query $sqlText
- does not have TungstenAggregate in the plan.
+           |Codegen is enabled, but query $sqlText does not have TungstenAggregate in the plan.
            |${df.queryExecution.simpleString}
          """.stripMargin)
     }
@@ -452,10 +449,8 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
       sql(
         "SELECT nestedData, nestedData[0][0], nestedData[0][0] + nestedData[0][1] FROM arrayData"),
       arrayData.map(d =>
-        Row(d.
-          nestedData,
-         d.
-           nestedData(0)(0),
+        Row(d.nestedData,
+         d.nestedData(0)(0),
          d.nestedData(0)(0) + d.nestedData(0)(1))).collect().toSeq)
   }
 
@@ -568,9 +563,9 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     checkAnswer(
       sql("with q1 as (select * from testData limit 10) select * from q1"),
       testData.take(10).toSeq)
+
     checkAnswer(
-      sql(
-        """
+      sql("""
         |with q1 as (select * from testData where key= '5'),
         |q2 as (select * from testData where key = '4')
         |select * from q1 union all select * from q2""".stripMargin),
@@ -694,13 +689,11 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
 
   test("inner join, where, multiple matches") {
     checkAnswer(
-      sql(
-        """
+      sql("""
         |SELECT * FROM
         |  (SELECT * FROM testData2 WHERE a = 1) x JOIN
         |  (SELECT * FROM testData2 WHERE a = 1) y
-        |WHERE x.a = y.a""".
-          stripMargin),
+        |WHERE x.a = y.a""".stripMargin),
       Row(1, 1, 1, 1) ::
       Row(1, 1, 1, 2) ::
       Row(1, 2, 1, 1) ::
@@ -738,8 +731,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
 
   test("cartesian product join") {
     checkAnswer(
-      testData3.
-        join(testData3),
+      testData3.join(testData3),
       Row(1, null, 1, null) ::
       Row(1, null, 2, 2) ::
       Row(2, 2, 1, null) ::
@@ -748,13 +740,10 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
 
   test("left outer join") {
     checkAnswer(
-      sql(
-        "SELECT * FROM upperCaseData LEFT OUTER JOIN lowerCaseData ON n = N")
-      ,
+      sql("SELECT * FROM upperCaseData LEFT OUTER JOIN lowerCaseData ON n = N"),
       Row(1, "A", 1, "a") ::
       Row(2, "B", 2, "b") ::
-      Row(3, "C", 3, "c"
-      ) ::
+      Row(3, "C", 3, "c") ::
       Row(4, "D", 4, "d") ::
       Row(5, "E", null, null) ::
       Row(6, "F", null, null) :: Nil)
@@ -762,10 +751,9 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
 
   test("right outer join") {
     checkAnswer(
-      sql(
-        "SELECT * FROM lowerCaseData RIGHT OUTER JOIN upperCaseData ON n = N"),
+      sql("SELECT * FROM lowerCaseData RIGHT OUTER JOIN upperCaseData ON n = N"),
       Row(1, "a", 1, "A") ::
-        Row(2, "b", 2, "B") ::
+      Row(2, "b", 2, "B") ::
       Row(3, "c", 3, "C") ::
       Row(4, "d", 4, "D") ::
       Row(null, null, 5, "E") ::
@@ -780,10 +768,8 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
           |  (SELECT * FROM upperCaseData WHERE N <= 4) leftTable FULL OUTER JOIN
           |  (SELECT * FROM upperCaseData WHERE N >= 3) rightTable
           |    ON leftTable.N = rightTable.N
-        """.
-          stripMargin),
-      Row(1
-        , "A", null, null) ::
+        """.stripMargin),
+      Row(1, "A", null, null) ::
       Row(2, "B", null, null) ::
       Row(3, "C", 3, "C") ::
       Row (4, "D", 4, "D") ::
@@ -812,13 +798,11 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
       .limit(2)
       .registerTempTable("subset2")
     checkAnswer(
-      sql(
-        "SELECT * FROM lowerCaseData INNER JOIN subset1 ON subset1.n = lowerCaseData.n"),
+      sql("SELECT * FROM lowerCaseData INNER JOIN subset1 ON subset1.n = lowerCaseData.n"),
       Row(3, "c", 3) ::
       Row(4, "d", 4) :: Nil)
     checkAnswer(
-      sql(
-        "SELECT * FROM lowerCaseData INNER JOIN subset2 ON subset2.n = lowerCaseData.n"),
+      sql("SELECT * FROM lowerCaseData INNER JOIN subset2 ON subset2.n = lowerCaseData.n"),
       Row(1, "a", 1) ::
       Row(2, "b", 2) :: Nil)
   }
@@ -831,12 +815,9 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
           |  (select * from upperCaseData WherE N <= 4) leftTable fuLL OUtER joiN
           |  (sElEcT * FROM upperCaseData whERe N >= 3) rightTable
           |    oN leftTable.N = rightTable.N
-        """.
-          stripMargin),
-      Row(1, "A"
-        , null, null) ::
-      Row
-        (2, "B", null, null) ::
+        """.stripMargin),
+      Row(1, "A", null, null) ::
+      Row(2, "B", null, null) ::
       Row(3, "C", 3, "C") ::
       Row(4, "D", 4, "D") ::
       Row(null, null, 5, "E") ::
@@ -908,16 +889,14 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
 
   test("UNION") {
     checkAnswer(
-      sql(
-        "SELECT * FROM lowerCaseData UNION SELECT * FROM upperCaseData"),
+      sql("SELECT * FROM lowerCaseData UNION SELECT * FROM upperCaseData"),
       Row(1, "A") :: Row(1, "a") :: Row(2, "B") :: Row(2, "b") :: Row(3, "C") :: Row(3, "c") ::
       Row(4, "D") :: Row(4, "d") :: Row(5, "E") :: Row(6, "F") :: Nil)
     checkAnswer(
       sql("SELECT * FROM lowerCaseData UNION SELECT * FROM lowerCaseData"),
       Row(1, "a") :: Row(2, "b") :: Row(3, "c") :: Row(4, "d") :: Nil)
     checkAnswer(
-      sql(
-        "SELECT * FROM lowerCaseData UNION ALL SELECT * FROM lowerCaseData"),
+      sql("SELECT * FROM lowerCaseData UNION ALL SELECT * FROM lowerCaseData"),
       Row(1, "a") :: Row(1, "a") :: Row(2, "b") :: Row(2, "b") :: Row(3, "c") :: Row(3, "c") ::
       Row(4, "d") :: Row(4, "d") :: Nil)
   }
@@ -925,8 +904,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
   test("UNION with column mismatches") {
     // Column name mismatches are allowed.
     checkAnswer(
-      sql(
-        "SELECT n,l FROM lowerCaseData UNION SELECT N as x1, L as x2 FROM upperCaseData"),
+      sql("SELECT n,l FROM lowerCaseData UNION SELECT N as x1, L as x2 FROM upperCaseData"),
       Row(1, "A") :: Row(1, "a") :: Row(2, "B") :: Row(2, "b") :: Row(3, "C") :: Row(3, "c") ::
       Row(4, "D") :: Row(4, "d") :: Row(5, "E") :: Row(6, "F") :: Nil)
     // Column type mismatches are not allowed, forcing a type coercion.
@@ -940,8 +918,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     }
   }
 
-  test(
-    "EXCEPT") {
+  test("EXCEPT") {
     checkAnswer(
       sql("SELECT * FROM lowerCaseData EXCEPT SELECT * FROM upperCaseData"),
       Row(1, "a") ::
@@ -951,9 +928,9 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     checkAnswer(
       sql("SELECT * FROM lowerCaseData EXCEPT SELECT * FROM lowerCaseData"), Nil)
     checkAnswer(
-      sql("SELECT * FROM upperCaseData EXCEPT SELECT * FROM upperCaseData")
-      , Nil)
+      sql("SELECT * FROM upperCaseData EXCEPT SELECT * FROM upperCaseData"), Nil)
   }
+
   test("INTERSECT") {
     checkAnswer(
       sql("SELECT * FROM lowerCaseData INTERSECT SELECT * FROM lowerCaseData"),
@@ -1016,13 +993,11 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     // the number of reducers is not supported
     intercept[IllegalArgumentException](sql(s"SET mapred.reduce.tasks=-1"))
     intercept[IllegalArgumentException](sql(s"SET mapred.reduce.tasks=-01"))
-    intercept[IllegalArgumentException](sql
-      (s"SET mapred.reduce.tasks=-2"))
+    intercept[IllegalArgumentException](sql(s"SET mapred.reduce.tasks=-2"))
     sqlContext.conf.clear()
   }
 
-  test(
-    "apply schema") {
+  test("apply schema") {
     val schema1 = StructType(
       StructField("f1", IntegerType, false) ::
       StructField("f2", StringType, false) ::
@@ -1037,22 +1012,18 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
       Row(values(0).toInt, values(1), values(2).toBoolean, v4)
     }
 
-    val
-    df1 = sqlContext.
-      createDataFrame(rowRDD1, schema1)
+    val df1 = sqlContext.createDataFrame(rowRDD1, schema1)
     df1.registerTempTable("applySchema1")
     checkAnswer(
       sql("SELECT * FROM applySchema1"),
       Row(1, "A1", true, null) ::
-      Row(2, "B2",
-        false, null) ::
+      Row(2, "B2", false, null) ::
       Row(3, "C3", true, null) ::
       Row(4, "D4", true, 2147483644) :: Nil)
 
     checkAnswer(
       sql("SELECT f1, f4 FROM applySchema1"),
-      Row(1,
-        null) ::
+      Row(1, null) ::
       Row(2, null) ::
       Row(3, null) ::
       Row(4, 2147483644) :: Nil)
@@ -1071,16 +1042,12 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
       Row(Row(values(0).toInt, values(2).toBoolean), Map(values(1) -> v4))
     }
 
-    val df2 = sqlContext.
-      createDataFrame(rowRDD2, schema2)
-    df2.
-      registerTempTable("applySchema2")
+    val df2 = sqlContext.createDataFrame(rowRDD2, schema2)
+    df2.registerTempTable("applySchema2")
     checkAnswer(
       sql("SELECT * FROM applySchema2"),
       Row(Row(1, true), Map("A1" -> null)) ::
-      Row(Row(2,
-        false), Map("B2"
-        -> null)) ::
+      Row(Row(2, false), Map("B2" -> null)) ::
       Row(Row(3, true), Map("C3" -> null)) ::
       Row(Row(4, true), Map("D4" -> 2147483644)) :: Nil)
 
@@ -1097,10 +1064,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
       val v4 = try values(3).toInt catch {
         case _: NumberFormatException => null
       }
-      Row(Row(values(0).toInt, values(2).toBoolean), scala.
-        collection.mutable.
-        Map(values(1) ->
-        v4))
+      Row(Row(values(0).toInt, values(2).toBoolean), scala.collection.mutable.Map(values(1) -> v4))
     }
 
     val df3 = sqlContext.createDataFrame(rowRDD3, schema2)
@@ -1335,7 +1299,8 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
 
   test("Multiple join") {
     checkAnswer(
-      sql( """SELECT a.key, b.key, c.key
+      sql(
+        """SELECT a.key, b.key, c.key
           |FROM testData a
           |JOIN testData b ON a.key = b.key
           |JOIN testData c ON a.key = c.key
@@ -1377,8 +1342,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
   }
 
   test("SPARK-4154 Query does not work if it has 'not between' in Spark SQL and HQL") {
-    checkAnswer(sql(
-      "SELECT key FROM testData WHERE key not between 0 and 10 order by key"),
+    checkAnswer(sql("SELECT key FROM testData WHERE key not between 0 and 10 order by key"),
         (11 to 100).map(i => Row(i)))
   }
 
@@ -1417,8 +1381,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     val nullCheckData1 = TestData(1, "1") :: TestData(2, null) :: Nil
     val rdd1 = sparkContext.parallelize((0 to 1).map(i => nullCheckData1(i)))
     rdd1.toDF().registerTempTable("nulldata1")
-    val nullCheckData2 = TestData(1, "1") :: TestData(2, null)
-      :: Nil
+    val nullCheckData2 = TestData(1, "1") :: TestData(2, null) :: Nil
     val rdd2 = sparkContext.parallelize((0 to 1).map(i => nullCheckData2(i)))
     rdd2.toDF().registerTempTable("nulldata2")
     checkAnswer(sql("SELECT nulldata1.key FROM nulldata1 join " +
@@ -1437,8 +1400,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     sqlContext.setConf(SQLConf.CASE_SENSITIVE, false)
     val data = TestData(1, "val_1") :: TestData(2, "val_2") :: Nil
     val rdd = sparkContext.parallelize((0 to 1).map(i => data(i)))
-    rdd.toDF().
-      registerTempTable("testTable1")
+    rdd.toDF().registerTempTable("testTable1")
     checkAnswer(sql("SELECT VALUE FROM TESTTABLE1 where KEY = 1"), Row("val_1"))
     sqlContext.setConf(SQLConf.CASE_SENSITIVE, true)
   }
@@ -1505,8 +1467,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
         """.stripMargin),
       Row(3) :: Row(7) :: Row(11) :: Row(15) :: Nil)
 
-    checkAnswer
-      (
+    checkAnswer(
       sql(
         """
           |SELECT a, sum(b)
@@ -1515,6 +1476,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
           |ORDER BY sum(b)
         """.stripMargin),
       Row("4", 3) :: Row("1", 7) :: Row("3", 11) :: Row("2", 15) :: Nil)
+
     checkAnswer(
       sql(
         """
@@ -1523,9 +1485,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
             |GROUP BY a
             |ORDER BY sum(b) + 1
           """.stripMargin),
-      Row("4", 3) :: Row("1", 7) :: Row("3",
-        11) :: Row(
-        "2", 15) :: Nil)
+      Row("4", 3) :: Row("1", 7) :: Row("3", 11) :: Row("2", 15) :: Nil)
 
     checkAnswer(
       sql(
@@ -1707,12 +1667,9 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     }
   }
 
-  test(
-    "specifying database name for a temporary table is not allowed") {
-    withTempPath {
-      dir =>
-        val path = dir.
-          getCanonicalPath
+  test("specifying database name for a temporary table is not allowed") {
+    withTempPath { dir =>
+      val path = dir.getCanonicalPath
       val df =
         sparkContext.parallelize(1 to 10).map(i => (i, i.toString)).toDF("num", "str")
       df
@@ -1726,8 +1683,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
           |CREATE TEMPORARY TABLE db.t
           |USING parquet
           |OPTIONS (
-          |  path '$path
-'
+          |  path '$path'
           |)
         """.stripMargin)
       }.getMessage
@@ -2040,8 +1996,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     }
   }
 
-  test(
-    "SPARK-10707: nullability should be correctly propagated through set operations (1)") {
+  test("SPARK-10707: nullability should be correctly propagated through set operations (1)") {
     // This test produced an incorrect result of 1 before the SPARK-10707 fix because of the
     // NullPropagation rule: COUNT(v) got replaced with COUNT(1) because the output column of
     // UNION was incorrectly considered non-nullable:
@@ -2190,10 +2145,8 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
         Row("one", 1, 1) :: Row("one", 1, 5) :: Row("two", 2, 22) :: Nil)
 
       checkAnswer(
-        sql(
-          "SELECT count(*) FROM nt1 natural full outer join nt2"),
-        Row
-          (4) :: Nil)
+        sql("SELECT count(*) FROM nt1 natural full outer join nt2"),
+        Row(4) :: Nil)
     }
   }
 
@@ -2208,28 +2161,33 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
       df1.registerTempTable("t1")
       df2.registerTempTable("t2")
       df3.registerTempTable("t3")
+      // innser join with one using column
       checkAnswer(
         sql("SELECT * FROM t1 join t2 using (c1)"),
         Row("r1c1", "r1c2", "t1r1c3", "r1c2", "t2r1c3") ::
           Row("r2c1", "r2c2", "t1r2c3", "r2c2", "t2r2c3") :: Nil)
 
+      // inner join with two using columns
       checkAnswer(
         sql("SELECT * FROM t1 join t2 using (c1, c2)"),
         Row("r1c1", "r1c2", "t1r1c3", "t2r1c3") ::
           Row("r2c1", "r2c2", "t1r2c3", "t2r2c3") :: Nil)
 
+      // Left outer join with one using column.
       checkAnswer(
         sql("SELECT * FROM t1 left join t2 using (c1)"),
         Row("r1c1", "r1c2", "t1r1c3", "r1c2", "t2r1c3") ::
           Row("r2c1", "r2c2", "t1r2c3", "r2c2", "t2r2c3") ::
           Row("r3c1x", "r3c2", "t1r3c3", null, null) :: Nil)
 
+      // Right outer join with one using column.
       checkAnswer(
         sql("SELECT * FROM t1 right join t2 using (c1)"),
         Row("r1c1", "r1c2", "t1r1c3", "r1c2", "t2r1c3") ::
           Row("r2c1", "r2c2", "t1r2c3", "r2c2", "t2r2c3") ::
           Row("r3c1y", null, null, "r3c2", "t2r3c3") :: Nil)
 
+      // Full outer join with one using column.
       checkAnswer(
         sql("SELECT * FROM t1 full outer join t2 using (c1)"),
         Row("r1c1", "r1c2", "t1r1c3", "r1c2", "t2r1c3") ::
@@ -2238,6 +2196,7 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
           Row("r3c1y", null,
             null, "r3c2", "t2r3c3") :: Nil)
 
+      // Full outer join with null value in join column.
       checkAnswer(
         sql("SELECT * FROM t1 full outer join t3 using (c1)"),
         Row("r1c1", "r1c2", "t1r1c3", null, null) ::

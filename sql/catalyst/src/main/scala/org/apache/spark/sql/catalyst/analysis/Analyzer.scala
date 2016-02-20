@@ -1305,53 +1305,15 @@ class Analyzer(
    * Then apply a Project on a normal Join to eliminate natural join.
    */
   object ResolveNaturalJoin extends Rule[LogicalPlan] {
-    private def commonNaturalJoinProcessing(left: LogicalPlan, right: LogicalPlan,
-                                             joinType: JoinType,
-                                             joinNames: Seq[String],
-                                             condition: Option[Expression]) = {
-      val leftKeys = joinNames.map(keyName => left.output.find(_.name == keyName).get)
-      val rightKeys = joinNames.map(keyName => right.output.find(_.name == keyName).get)
-      val joinPairs = leftKeys.zip(rightKeys)
-
-      // Add joinPairs to joinConditions
-      val newCondition = (condition ++ joinPairs.map {
-        case (l, r) => EqualTo(l, r)
-      }).reduceOption(And)
-
-      // columns not in joinPairs
-      val lUniqueOutput = left.output.filterNot(att => leftKeys.contains(att))
-      val rUniqueOutput = right.output.filterNot(att => rightKeys.contains(att))
-
-      // the output list looks like: join keys, columns from left, columns from right
-      val projectList = joinType match {
-        case LeftOuter =>
-          leftKeys ++ lUniqueOutput ++ rUniqueOutput.map(_.withNullability(true))
-        case RightOuter =>
-          rightKeys ++ lUniqueOutput.map(_.withNullability(true)) ++ rUniqueOutput
-        case FullOuter =>
-          // in full outer join, joinCols should be non-null if there is.
-          val joinedCols = joinPairs.map { case (l, r) => Alias(Coalesce(Seq(l, r)), l.name)() }
-          joinedCols ++
-            lUniqueOutput.map(_.withNullability(true)) ++
-            rUniqueOutput.map(_.withNullability(true))
-        case Inner =>
-          rightKeys ++ lUniqueOutput ++ rUniqueOutput
-        case _ =>
-          sys.error("Unsupported natural join type " + joinType)
-      }
-      // use Project to trim unnecessary fields
-      Project(projectList, Join(left, right, joinType, newCondition))
-    }
-
     override def apply(plan: LogicalPlan): LogicalPlan = plan resolveOperators {
       case j @ Join(left, right, joinType, u @ Some(UnresolvedUsingAttributes(cols)))
         if left.resolved && right.resolved =>
         // Resolve the column names referenced in using clause from both the legs of join.
-        val lCols = cols.map( col => left.resolveQuoted(col, resolver) ).filter(_.isDefined)
-        val rCols = cols.map { col => right.resolveQuoted(col, resolver) }.filter(_.isDefined)
+        val lCols = cols.map(col => left.resolveQuoted(col, resolver)).flatten
+        val rCols = cols.map(col => right.resolveQuoted(col, resolver)).flatten
         if ((lCols.length == cols.length) && (rCols.length == cols.length))
         {
-          val joinNames = lCols.map(exp => exp.get.name)
+          val joinNames = lCols.map(exp => exp.name)
           commonNaturalJoinProcessing(left, right, joinType, joinNames, None)
         } else {
           j
@@ -1362,6 +1324,48 @@ class Analyzer(
         commonNaturalJoinProcessing(left, right, joinType, joinNames, condition)
     }
   }
+
+  private def commonNaturalJoinProcessing(
+     left: LogicalPlan,
+     right: LogicalPlan,
+     joinType: JoinType,
+     joinNames: Seq[String],
+     condition: Option[Expression]) = {
+    val leftKeys = joinNames.map(keyName => left.output.find(_.name == keyName).get)
+    val rightKeys = joinNames.map(keyName => right.output.find(_.name == keyName).get)
+    val joinPairs = leftKeys.zip(rightKeys)
+
+    // Add joinPairs to joinConditions
+    val newCondition = (condition ++ joinPairs.map {
+      case (l, r) => EqualTo(l, r)
+    }).reduceOption(And)
+
+    // columns not in joinPairs
+    val lUniqueOutput = left.output.filterNot(att => leftKeys.contains(att))
+    val rUniqueOutput = right.output.filterNot(att => rightKeys.contains(att))
+
+    // the output list looks like: join keys, columns from left, columns from right
+    val projectList = joinType match {
+      case LeftOuter =>
+        leftKeys ++ lUniqueOutput ++ rUniqueOutput.map(_.withNullability(true))
+      case RightOuter =>
+        rightKeys ++ lUniqueOutput.map(_.withNullability(true)) ++ rUniqueOutput
+      case FullOuter =>
+        // in full outer join, joinCols should be non-null if there is.
+        val joinedCols = joinPairs.map { case (l, r) => Alias(Coalesce(Seq(l, r)), l.name)() }
+        joinedCols ++
+          lUniqueOutput.map(_.withNullability(true)) ++
+          rUniqueOutput.map(_.withNullability(true))
+      case Inner =>
+        rightKeys ++ lUniqueOutput ++ rUniqueOutput
+      case _ =>
+        sys.error("Unsupported natural join type " + joinType)
+    }
+    // use Project to trim unnecessary fields
+    Project(projectList, Join(left, right, joinType, newCondition))
+  }
+
+
 }
 
 /**
