@@ -1309,8 +1309,8 @@ class Analyzer(
       case j @ Join(left, right, joinType, u @ Some(UnresolvedUsingAttributes(cols)))
         if left.resolved && right.resolved =>
         // Resolve the column names referenced in using clause from both the legs of join.
-        val lCols = cols.map(col => left.resolveQuoted(col, resolver)).flatten
-        val rCols = cols.map(col => right.resolveQuoted(col, resolver)).flatten
+        val lCols = cols.flatMap(col => left.resolveQuoted(col, resolver))
+        val rCols = cols.flatMap(col => right.resolveQuoted(col, resolver))
         if ((lCols.length == cols.length) && (rCols.length == cols.length))
         {
           val joinNames = lCols.map(exp => exp.name)

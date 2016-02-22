@@ -109,7 +109,7 @@ trait CheckAnalysis {
               s"filter expression '${f.condition.prettyString}' " +
                 s"of type ${f.condition.dataType.simpleString} is not a boolean.")
 
-          case j @ Join(_, _, _, u @ Some(UnresolvedUsingAttributes(cols)))  =>
+          case j @ Join(_, _, _, u @ Some(UnresolvedUsingAttributes(cols))) =>
             val from = operator.inputSet.map(_.name).mkString(", ")
             failAnalysis(
               s"using columns [${u.get.prettyString}] " +

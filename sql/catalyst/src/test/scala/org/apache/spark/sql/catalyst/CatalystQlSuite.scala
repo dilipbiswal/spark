@@ -214,8 +214,12 @@ class CatalystQlSuite extends PlanTest {
     // (1) Empty using clause
     // (2) Qualified columns in using
     // (3) Both on and using clause
-    intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using ()"))
-    intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using (t1.c1)"))
-    intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using (c1) on t1.c1 = t2.c1"))
+    var error = intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using ()"))
+    assert(error.message.contains("cannot recognize input near ')'"))
+    error = intercept[AnalysisException](parser.parsePlan("select * from t1 join t2 using (t1.c1)"))
+    assert(error.message.contains("mismatched input '.'"))
+    error = intercept[AnalysisException](parser.parsePlan("select * from t1" +
+      " join t2 using (c1) on t1.c1 = t2.c1"))
+    assert(error.message.contains("missing EOF at 'on' near ')'"))
   }
 }

@@ -17,6 +17,7 @@
 
 package org.apache.spark.sql.catalyst.analysis
 
+import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.dsl.expressions._
 import org.apache.spark.sql.catalyst.dsl.plans._
 import org.apache.spark.sql.catalyst.expressions._
@@ -102,5 +103,13 @@ class ResolveNaturalJoinSuite extends AnalysisTest {
       Alias(Coalesce(Seq(bNotNull, bNotNull)), "b")(), a, c)
     checkAnalysis(naturalPlan, expected)
     checkAnalysis(usingPlan, expected)
+  }
+
+  test("using unresolved attribute") {
+    val usingPlan = r1.join(r2, Inner, Some(UnresolvedUsingAttributes(Seq("d"))))
+    val error = intercept[AnalysisException] {
+      SimpleAnalyzer.checkAnalysis(usingPlan)
+    }
+    assert(error.message.contains("using columns [d] can not be resolved given input columns: [b, a, c]"))
   }
 }
