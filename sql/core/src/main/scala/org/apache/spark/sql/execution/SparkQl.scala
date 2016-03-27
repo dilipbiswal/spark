@@ -370,12 +370,17 @@ private[sql] class SparkQl(conf: ParserConf = SimpleParserConf()) extends Cataly
         ClearCacheCommand
 
       case Token("TOK_SHOWTABLES", args) =>
-        val databaseName = args match {
-          case Nil => None
-          case Token("TOK_FROM", Token(dbName, Nil) :: Nil) :: Nil => Option(dbName)
+        val (databaseName, tablePattern) = args match {
+          case Nil => (None, None)
+          case Token("TOK_FROM", Token(dbName, Nil) :: Nil) :: Token(pattern, Nil) :: Nil =>
+            (Some(unquoteString(dbName)), Some(unquoteString(pattern)))
+          case Token("TOK_FROM", Token(dbName, Nil) :: Nil) :: Nil =>
+            (Some(unquoteString(dbName)), None)
+          case Token(pattern, Nil) :: Nil =>
+            (None, Some(unquoteString(pattern)))
           case _ => noParseRule("SHOW TABLES", node)
         }
-        ShowTablesCommand(databaseName)
+        ShowTablesCommand(databaseName, tablePattern)
 
       case _ =>
         super.nodeToPlan(node)
