@@ -773,4 +773,17 @@ class DDLCommandSuite extends PlanTest {
     comparePlans(parsed2, expected2)
   }
 
+  test("show tblproperties") {
+    val sql1 = "SHOW TBLPROPERTIES tab1"
+    val sql2 =
+      """
+        |SHOW TBLPROPERTIES tab1("propKey1")
+      """.stripMargin
+    val parsed1 = parser.parsePlan(sql1)
+    val expected1 = ShowTablePropertiesCommand(TableIdentifier("tab1", None), None)
+    val parsed2 = parser.parsePlan(sql2)
+    val expected2 = ShowTablePropertiesCommand(TableIdentifier("tab1", None), Some("propKey1"))
+    comparePlans(parsed1, expected1)
+    comparePlans(parsed2, expected2)
+  }
 }
