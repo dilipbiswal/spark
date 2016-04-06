@@ -558,7 +558,9 @@ primaryExpression
     | '(' namedExpression (',' namedExpression)+ ')'                                           #rowConstructor
     | '(' query ')'                                                                            #subqueryExpression
     | qualifiedName '(' (setQuantifier? namedExpression (',' namedExpression)*)? ')'
-       (OVER windowSpec)?                                                                      #functionCall
+      (OVER windowSpec)?                                                                       #functionCall
+    | qualifiedName '(' trimOperator=(BOTH | LEADING | TRAILING) trimChar=namedExpression
+      FROM namedExpression ')'                                                                 #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                                    #subscript
     | identifier                                                                               #columnReference
     | base=primaryExpression '.' fieldName=identifier                                          #dereference
@@ -725,6 +727,7 @@ nonReserved
     | AND | CASE | CAST | DISTINCT | DIV | ELSE | END | FUNCTION | INTERVAL | MACRO | OR | STRATIFY | THEN
     | UNBOUNDED | WHEN
     | DATABASE | SELECT | FROM | WHERE | HAVING | TO | TABLE | WITH | NOT | CURRENT_DATE | CURRENT_TIMESTAMP
+    | BOTH | LEADING | TRAILING
     ;
 
 SELECT: 'SELECT';
@@ -836,6 +839,9 @@ TRANSACTION: 'TRANSACTION';
 COMMIT: 'COMMIT';
 ROLLBACK: 'ROLLBACK';
 MACRO: 'MACRO';
+BOTH: 'BOTH';
+LEADING: 'LEADING';
+TRAILING: 'TRAILING';
 
 IF: 'IF';
 

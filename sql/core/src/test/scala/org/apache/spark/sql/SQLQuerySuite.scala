@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import org.apache.spark.{AccumulatorSuite, SparkException}
 import org.apache.spark.scheduler.{SparkListener, SparkListenerJobStart}
+import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.util.StringUtils
 import org.apache.spark.sql.execution.aggregate
 import org.apache.spark.sql.execution.joins.{BroadcastHashJoinExec, CartesianProductExec, SortMergeJoinExec}
@@ -2605,5 +2606,106 @@ class SQLQuerySuite extends QueryTest with SharedSQLContext {
     } catch {
       case ae: AnalysisException => assert(ae.plan == null && ae.getMessage == ae.getSimpleMessage)
     }
+  }
+
+  test("TRIM function-BOTH") {
+    val ae1 = intercept[AnalysisException]{
+      sql("SELECT TRIM(BOTH 'aa' FROM 'aabcaa')").collect()
+      }
+    assert(ae1.getMessage contains
+      "Trim character 'aa' can not be greater than 1 character.")
+    val ae2 = intercept[ParseException]{
+      sql("select lower(BOTH 'S' FROM 'SS abc S')").head
+      }
+    assert(ae2.getMessage contains
+      "The specified function lower doesn't support with option BOTH")
+    checkAnswer(
+      sql("SELECT TRIM(BOTH '' FROM '  bc  ')"), Row("  bc  ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(BOTH ' ' FROM '  bc  ')"), Row("bc") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(BOTH 'c' FROM 'ccccccc')"), Row("") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(BOTH 'c' FROM 'c' )"), Row("") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(BOTH 'c' FROM 'bcccccc')"), Row("b") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(BOTH 'c' FROM 'ccccccc ')"), Row(" ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(BOTH 'c' FROM 'ccccbcc')"), Row("b") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(BOTH 'c' FROM ' ccccbcc')"), Row(" ccccb") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(BOTH 'c' FROM 'ccccbcc ')"), Row("bcc ") :: Nil)
+  }
+
+  test("TRIM function-LEADING") {
+    val ae1 = intercept[AnalysisException]{
+      sql("SELECT TRIM(LEADING 'aa' FROM 'aabcaa')").collect()
+      }
+    assert(ae1.getMessage contains
+      "Trim character 'aa' can not be greater than 1 character.")
+    val ae2 = intercept[ParseException]{
+      sql("select lower(LEADING 'S' FROM 'SS abc S')").head
+      }
+    assert(ae2.getMessage contains
+      "The specified function lower doesn't support with option LEADING")
+    checkAnswer(
+      sql("SELECT TRIM(LEADING '' FROM '  bc  ' )"), Row("  bc  ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING ' ' FROM '  SparkSql ')"), Row("SparkSql ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING 'c' FROM 'ccccccc' )"), Row("") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING 'c' FROM 'bcccccc' )"), Row("bcccccc") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING 'c' FROM 'ccccccc ' )"), Row(" ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING ' ' FROM '  bc  ' )"), Row("bc  ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING 'c' FROM 'ccccbcc')"), Row("bcc") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING 'c' FROM ' ccccbcc ')"), Row(" ccccbcc ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING 'c' FROM ' ccccbcc')"), Row(" ccccbcc") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(LEADING 'c' FROM 'ccccbcc ')"), Row("bcc ") :: Nil)
+  }
+
+  test("TRIM function-TRAILING") {
+    val ae1 = intercept[AnalysisException]{
+      sql("SELECT TRIM(TRAILING 'aa' FROM 'aabcaa' )").collect()
+      }
+    assert(ae1.getMessage contains
+      "Trim character 'aa' can not be greater than 1 character.")
+    val ae2 = intercept[ParseException]{
+      sql("select lower(TRAILING 'S' FROM 'SS abc S')").head
+      }
+    assert(ae2.getMessage contains
+      "The specified function lower doesn't support with option TRAILING")
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING '' FROM '  bc  ' )"), Row("  bc  ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING ' ' FROM '  bc  ' )"), Row("  bc") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING ' ' FROM '  SparkSql ')"), Row("  SparkSql") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM 'ccccccc' )"), Row("") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM 'cb' )"), Row("cb") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM 'bc' )"), Row("b") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM 'c' )"), Row("") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM ' ccccccc' )"), Row(" ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM 'ccccbcc' )"), Row("ccccb") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM ' ccccbcc ' )"), Row(" ccccbcc ") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM ' ccccbcc' )"), Row(" ccccb") :: Nil)
+    checkAnswer(
+      sql("SELECT TRIM(TRAILING 'c' FROM 'ccccbcc ' )"), Row("ccccbcc ") :: Nil)
   }
 }
