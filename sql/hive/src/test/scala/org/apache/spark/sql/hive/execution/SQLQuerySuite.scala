@@ -1811,4 +1811,18 @@ class SQLQuerySuite extends QueryTest with SQLTestUtils with TestHiveSingleton {
       }
     }
   }
+
+  test("TRIM function-BOTH") {
+    /*
+    checkAnswer(
+      sql("SELECT TRIM( BOTH ' ' FROM '  bc  ' )"), Row("bc") :: Nil)
+
+    checkAnswer(
+      sql("SELECT TRIM('  bc  ' )"), Row("bc") :: Nil)
+      */
+
+    sql("create table foo (c1 string, c2 char(1))")
+    sql ("insert into foo select 'ccccbacc', 'cc'")
+    sql("SELECT TRIM(c1, c2 ) from foo").show()
+  }
 }

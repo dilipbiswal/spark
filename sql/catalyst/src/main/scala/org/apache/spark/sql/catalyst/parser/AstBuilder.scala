@@ -1033,9 +1033,12 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
    * Create a (windowed) Function expression.
    */
   override def visitFunctionCall(ctx: FunctionCallContext): Expression = withOrigin(ctx) {
-    // Create the function call.
-    //val name = ctx.qualifiedName.getText
-    val name = getFunctionName(ctx)
+    val name =
+      Option(ctx.operator)
+        .map( o => getTrimFuncName(
+          ctx, o.getType,
+          ctx.trimChar.getText)).getOrElse(ctx.qualifiedName.getText)
+
     val isDistinct = Option(ctx.setQuantifier()).exists(_.DISTINCT != null)
     val arguments = ctx.expression().asScala.map(expression) match {
       case Seq(UnresolvedStar(None)) if name.toLowerCase == "count" && !isDistinct =>
@@ -1056,46 +1059,17 @@ class AstBuilder extends SqlBaseBaseVisitor[AnyRef] with Logging {
     }
   }
 
-  /**
-   * Create a name LTRIM for TRIM(Leading), RTRIM for TRIM(Trailing), TRIM for TRIM(BOTH)
-   */
-  private def getFunctionName(ctx: FunctionCallContext): String = {
-    val ts = Seq("trim","ltrim", "rtrim")
-    /*
-    Option(ctx.trimChar) match {
-      case Some(s) if !name.toLowerCase.contains(trimString) =>
-        throw new ParseException(s"Function $name doesn't support this $s keyword.", ctx)
-      case Some(s) if string(s).size > 1 =>
-        throw new ParseException(s"trim Character length great than 1 ${s.getText}.", ctx)
+  private def getTrimFuncName(ctx: FunctionCallContext, opType: Int, trimStr: String): String = {
+    // TODO kevin, check size of trimChar and throw exception and any other validation
+    // Kevin, can this be done in Analyzer, instead. Add a optional FunctionOptions parameter
+    // to UnresolvedFunction ??
+    opType match {
+      case SqlBaseParser.BOTH => "trim"
+      case SqlBaseParser.LEADING => "ltrim"
+      case SqlBaseParser.TRAILING => "rtrim"
       case _ =>
+        throw new ParseException(s"Invalid Option ${opType}", ctx)
     }
-    */
-      (ctx.qualifiedName.getText,
-      Option(ctx.operator).map(_.getType),
-      Option(ctx.trimChar))match {
-       case (s, None, None) => s
-       case (s, Some(u), _) if (!ts.contains(s.toLowerCase())) =>
-         throw new ParseException(s"Function $s doesn't support this $u keyword.", ctx)
-       case (s, _, Some(t)) if (ts.contains(s) && (string(t).length > 1)) =>
-         throw new ParseException(s"trim Character length great than 1${t.getText}.", ctx)
-       case (s, Some(u), _) if (u == SqlBaseParser.BOTH) => "trim"
-       case (s, Some(u), _) if (u == SqlBaseParser.LEADING) => "ltrim"
-       case (s, Some(u), _) if (u == SqlBaseParser.TRAILING) => "rtrim"
-    }
-
-    /*
-    val functionName = (ctx.qualifiedName.getText.toLowerCase,
-                        Option(ctx.operator),
-                        Option(ctx.trimChar)) match {
-      case (u, None, None) => ctx.qualifiedName.getText
-      case (u, Some(s), _) if (u != "trim") =>
-        throw new ParseException(s"Function $u doesn't support this $s keyword.", ctx)
-      case ("trim", Some(s), Some(t)) if (string(t).size > 1) =>
-        throw new ParseException(s"trim Character length great than 1 ${t.getText}.", ctx)
-      //case ()
-    }
-
-  */
   }
 
   /**

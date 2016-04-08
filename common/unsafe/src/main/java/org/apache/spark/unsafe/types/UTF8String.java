@@ -464,12 +464,14 @@ public final class UTF8String implements Comparable<UTF8String>, Externalizable,
   public UTF8String trim(UTF8String trimChar) {
     int s = 0;
     int e = this.numBytes - 1;
-    // skip all of the space (0x20) in the left side
-    // while (s < this.numBytes && getByte(s) <= 0x20 && getByte(s) >= 0x00) s++;
-      while (s < this.numBytes && getByte(s) == trimChar.getByte(0) && getByte(s) >= 0x00) s++;
-    // skip all of the space (0x20) in the right side
-    // while (e >= 0 && getByte(e) <= 0x20 && getByte(e) >= 0x00) e--;
-      while (e >= 0 && getByte(e) == trimChar.getByte(0) && getByte(e) >= 0x00) e--;
+    // skip all of the trim character in the left side
+    while (s < this.numBytes &&
+            (getByte(s) == trimChar.getByte(0) || getByte(s) < 0x20)
+            && getByte(s) >= 0x00) s++;
+    // skip all of the trim character in the right side
+    while (e >= 0 &&
+            (getByte(e) == trimChar.getByte(0) || getByte(e) < 0x20 )
+            && getByte(e) >= 0x00) e--;
     if (s > e) {
       // empty string
       return UTF8String.fromBytes(new byte[0]);
@@ -481,10 +483,13 @@ public final class UTF8String implements Comparable<UTF8String>, Externalizable,
   public UTF8String trimOptBoth (UTF8String trimChar) {
       return UTF8String.fromBytes(new byte[0]);
   }
-  public UTF8String trimLeft() {
+
+  public UTF8String trimLeft(UTF8String trimChar) {
     int s = 0;
-    // skip all of the space (0x20) in the left side
-    while (s < this.numBytes && getByte(s) <= 0x20 && getByte(s) >= 0x00) s++;
+    // skip all of the trim character in the left side
+    while (s < this.numBytes &&
+            (getByte(s) == trimChar.getByte(0) || getByte(s) < 0x20)
+            && getByte(s) >= 0x00) s++;
     if (s == this.numBytes) {
       // empty string
       return UTF8String.fromBytes(new byte[0]);
@@ -493,10 +498,12 @@ public final class UTF8String implements Comparable<UTF8String>, Externalizable,
     }
   }
 
-  public UTF8String trimRight() {
+  public UTF8String trimRight(UTF8String trimChar) {
     int e = numBytes - 1;
-    // skip all of the space (0x20) in the right side
-    while (e >= 0 && getByte(e) <= 0x20 && getByte(e) >= 0x00) e--;
+    // skip all of the trim character in the right side
+    while (e >= 0 &&
+            (getByte(e) == trimChar.getByte(0) || getByte(e) < 0x20) &&
+            getByte(e) >= 0x00) e--;
 
     if (e < 0) {
       // empty string
