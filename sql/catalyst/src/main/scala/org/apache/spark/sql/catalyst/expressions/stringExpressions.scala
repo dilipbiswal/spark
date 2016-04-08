@@ -346,7 +346,8 @@ case class FindInSet(left: Expression, right: Expression) extends BinaryExpressi
 
 case class StringTrim(params: Seq[Expression]) extends Expression with ImplicitCastInputTypes {
 
-  override def children = if (params.size == 2) params else Seq(params(0), Literal(" "))
+  override def children: Seq[Expression] =
+    if (params.size == 2) params else Seq(params(0), Literal(" "))
 
   override def inputTypes: Seq[AbstractDataType] = Seq.fill(children.size)(StringType)
   override def dataType: DataType = StringType
@@ -379,7 +380,8 @@ case class StringTrim(params: Seq[Expression]) extends Expression with ImplicitC
 */
 case class StringTrimLeft(params: Seq[Expression]) extends Expression with ImplicitCastInputTypes {
 
-  override def children = if (params.size == 2) params else Seq(params(0), Literal(" "))
+  override def children: Seq[Expression] =
+    if (params.size == 2) params else Seq(params(0), Literal(" "))
 
   override def inputTypes: Seq[AbstractDataType] = Seq.fill(children.size)(StringType)
   override def dataType: DataType = StringType
@@ -413,7 +415,8 @@ case class StringTrimLeft(params: Seq[Expression]) extends Expression with Impli
  */
 case class StringTrimRight(params: Seq[Expression]) extends Expression with ImplicitCastInputTypes {
 
-  override def children = if (params.size == 2) params else Seq(params(0), Literal(" "))
+  override def children: Seq[Expression] =
+    if (params.size == 2) params else Seq(params(0), Literal(" "))
 
   override def inputTypes: Seq[AbstractDataType] = Seq.fill(children.size)(StringType)
   override def dataType: DataType = StringType

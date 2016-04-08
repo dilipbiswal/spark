@@ -449,7 +449,6 @@ class StringExpressionsSuite extends SparkFunSuite with ExpressionEvalHelper {
     val s = 'a.string.at(0)
     def testTRIM(inputs: Expression*): Unit = {
       val expected = if (inputs.contains(null)) null else inputs.mkString
-      //checkEvaluation(StringTrim(inputs.map(Literal.create(_, StringType)))), expected, EmptyRow)
       val first = inputs(0)
       val second = inputs(1)
       checkEvaluation(StringTrim(Seq(first, second)), expected, EmptyRow)
@@ -458,9 +457,6 @@ class StringExpressionsSuite extends SparkFunSuite with ExpressionEvalHelper {
 
     testTRIM((" aa  "), "aa", " abdef ")
     testTRIM(s, "abdef", " abdef ")
-
-    //checkEvaluation(StringTrim(Literal(" aa  ")), "aa", create_row(" abdef "))
-    //checkEvaluation(StringTrim(s), "abdef", create_row(" abdef "))
 
     checkEvaluation(StringTrimLeft(Seq(Literal(" aa  "))), "aa  ", create_row(" abdef "))
     checkEvaluation(StringTrimLeft(Seq(s)), "abdef ", create_row(" abdef "))
@@ -472,9 +468,7 @@ class StringExpressionsSuite extends SparkFunSuite with ExpressionEvalHelper {
     // non ascii characters are not allowed in the source code, so we disable the scalastyle.
     checkEvaluation(StringTrimRight(Seq(s)), "  花花世界", create_row("  花花世界 "))
     checkEvaluation(StringTrimLeft(Seq(s)), "花花世界 ", create_row("  花花世界 "))
-    //checkEvaluation(StringTrim(s), "花花世界", create_row("  花花世界 "))
     // scalastyle:on
-    //checkEvaluation(StringTrim(Literal.create(null, StringType)), null)
     checkEvaluation(StringTrimLeft(Seq(Literal.create(null, StringType))), null)
     checkEvaluation(StringTrimRight(Seq(Literal.create(null, StringType))), null)
   }

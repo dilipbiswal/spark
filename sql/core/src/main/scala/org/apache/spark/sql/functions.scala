@@ -2291,7 +2291,8 @@ object functions {
    * @group string_funcs
    * @since 1.5.0
    */
-  def trim(e: Column, trimChar: Char): Column = withExpr { StringTrim(Seq(e.expr, Literal(trimChar))) }
+  def trim(e: Column, trimChar: Char): Column =
+    withExpr { StringTrim(Seq(e.expr, Literal(trimChar))) }
 
   /**
    * Converts a string column to upper case.
