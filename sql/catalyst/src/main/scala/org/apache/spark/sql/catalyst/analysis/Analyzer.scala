@@ -180,6 +180,7 @@ class Analyzer(
               case g: Generator => MultiAlias(g, Nil)
               case c @ Cast(ne: NamedExpression, _) => Alias(c, ne.name)()
               case e: ExtractValue => Alias(e, toPrettySQL(e))()
+              case a: AggregateExpression => Alias(a, s"${a.aggregateFunction.prettyName}_c$i")()
               case e => Alias(e, optionalAliasName.getOrElse(toPrettySQL(e)))()
             }
           }

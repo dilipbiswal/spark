@@ -24,6 +24,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis._
 import org.apache.spark.sql.catalyst.encoders.{encoderFor, ExpressionEncoder}
 import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateExpression
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
 import org.apache.spark.sql.catalyst.util.usePrettyExpression
 import org.apache.spark.sql.execution.aggregate.TypedAggregateExpression
@@ -143,6 +144,12 @@ class Column(protected[sql] val expr: Expression) extends Logging {
       case ne: NamedExpression => ne
       case other => Alias(expr, usePrettyExpression(expr).sql)()
     }
+
+    // case expr: AggregateExpression => Alias(expr, expr.aggregateFunction.prettyName)()
+
+    case expr: AggregateExpression if expr.aggregateFunction.isInstanceOf[TypedAggregateExpression] =>
+        val func = expr.aggregateFunction.asInstanceOf[TypedAggregateExpression]
+        UnresolvedAlias(expr)
 
     case expr: Expression => Alias(expr, usePrettyExpression(expr).sql)()
   }

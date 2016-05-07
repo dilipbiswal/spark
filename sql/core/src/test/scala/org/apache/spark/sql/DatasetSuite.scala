@@ -658,7 +658,25 @@ class DatasetSuite extends QueryTest with SharedSQLContext {
     val dataset = Seq(1, 2, 3).toDS()
     checkDataset(DatasetTransform.addOne(dataset), 2, 3, 4)
   }
+
+  test("xyz") {
+     val df = Seq((1, (1, 1))).toDF()
+    df.groupBy("_1").agg(org.apache.spark.sql.functions.sum("_2._1")).show()
+  }
+
+  test("yin's issue") {
+    val ds = sqlContext.read.json("/tmp/person.json").as[Person]
+    import org.apache.spark.sql.expressions.scala.typed._
+
+    ds.groupByKey(_ => 0).agg(sum(_.age)).show()
+
+
+  }
 }
+
+
+
+case class Person(name: String, age: Long)
 
 case class OtherTuple(_1: String, _2: Int)
 
