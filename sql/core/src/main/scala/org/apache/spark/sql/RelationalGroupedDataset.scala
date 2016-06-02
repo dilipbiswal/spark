@@ -46,7 +46,19 @@ class RelationalGroupedDataset protected[sql](
 
   private[this] def toDF(aggExprs: Seq[Expression]): DataFrame = {
     val aggregates = if (df.sparkSession.sessionState.conf.dataFrameRetainGroupColumns) {
-      groupingExprs ++ aggExprs
+      val agg = Aggregate(groupingExprs, aggExprs.map(alias), df.logicalPlan)
+      val aggPlan: Aggregate =
+        df.sparkSession.sessionState.executePlan(agg).analyzed.asInstanceOf[Aggregate]
+      val unaliasedAggExprs = aggPlan.aggregateExpressions.map {
+        case expr: Alias => expr.child
+        case e => e
+      }
+      // Remove the duplicates that appear in both grouping and aggregate expressions.
+      val newGroupingExprs =
+        groupingExprs.zip(aggPlan.groupingExpressions)
+          .filterNot { g => unaliasedAggExprs.exists (_.semanticEquals(g._2))}.map(_._1)
+
+      newGroupingExprs ++ aggExprs
     } else {
       aggExprs
     }
