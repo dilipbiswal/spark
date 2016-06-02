@@ -232,6 +232,8 @@ class DatasetAggregatorSuite extends QueryTest with SharedSQLContext {
     assert(df2.schema.map(_.name) === Seq("col2", "col1", "count(1)"))
     val df3 = df.groupBy(expr("col1 + 2")).agg(expr("col1 + 2"), count("*"))
     assert(df3.schema.map(_.name) === Seq("(col1 + 2)", "count(1)"))
+    val df4 = df.groupBy("col1").agg(min("col1"), max("col1"))
+    assert(df4.schema.map(_.name) === Seq("col1", "min(col1)", "max(col1)"))
   }
 
   test("SPARK-14675: ClassFormatError when use Seq as Aggregator buffer type") {
