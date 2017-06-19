@@ -62,4 +62,9 @@ class ErrorParserSuite extends SparkFunSuite {
       "EXCEPT ALL is not supported",
       "^^^")
   }
+
+  test("refresh path errors") {
+    intercept("refresh abcd", 1, 8, "no viable alternative at input")
+    intercept("refresh abcd efgh", 1, 8, "no viable alternative at input")
+  }
 }

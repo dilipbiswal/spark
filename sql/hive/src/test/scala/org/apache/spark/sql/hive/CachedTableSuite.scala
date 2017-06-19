@@ -257,7 +257,7 @@ class CachedTableSuite extends QueryTest with SQLTestUtils with TestHiveSingleto
     assert(!isCached("refreshTable"), "refreshTable should not be cached.")
     // Refresh the table. REFRESH command should not make a uncached
     // table cached.
-    sql(s"REFRESH ${tempPath.toString}")
+    sql(s"""REFRESH "${tempPath.toString}"""")
     checkAnswer(
       table("refreshTable"),
       table("src").union(table("src")).collect())
