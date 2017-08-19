@@ -124,6 +124,10 @@ trait CheckAnalysis extends PredicateHelper {
                 failAnalysis(s"Expression '$e' not supported within a window function.")
             }
 
+          case i@ In(value, Seq(l @ ListQuery(sub, _, exprId))) =>
+            checkSubqueryExpression(operator, l)
+            checkInSubquery(i)
+            i
           case s: SubqueryExpression =>
             checkSubqueryExpression(operator, s)
             s
@@ -342,6 +346,32 @@ trait CheckAnalysis extends PredicateHelper {
     }
 
     plan.foreach(_.setAnalyzed())
+  }
+
+  private def checkInSubquery(expr: Expression): Unit = {
+    expr match {
+      case i @ In(value, Seq(l @ ListQuery(sub, _, exprId))) =>
+        val valExprs = value match {
+          case cns: CreateNamedStruct => cns.valExprs
+          case expr => Seq(expr)
+        }
+        if (valExprs.length != sub.output.length) {
+          failAnalysis(
+            s"""
+               |The number of columns in the left hand side of an IN subquery does not match the
+               |number of columns in the output of subquery.
+               |#columns in left hand side: ${valExprs.length}.
+               |#columns in right hand side: ${sub.output.length}.
+               |Left side columns:
+               |[${valExprs.map(_.sql).mkString(", ")}].
+               |Right side columns:
+               |[${sub.output.map(_.sql).mkString(", ")}].
+             """.stripMargin)
+        } else {
+          i.checkInputDataTypes()
+        }
+      case _ =>
+    }
   }
 
   /**
