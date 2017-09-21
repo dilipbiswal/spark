@@ -38,24 +38,51 @@ object CommandUtils extends Logging {
       val catalog = sparkSession.sessionState.catalog
       if (sparkSession.sessionState.conf.autoUpdateSize) {
         val newTable = catalog.getTableMetadata(table.identifier)
-        val newSize = CommandUtils.calculateTotalSize(sparkSession.sessionState, newTable)
-        val newStats = CatalogStatistics(sizeInBytes = newSize)
-        catalog.alterTableStats(table.identifier, Some(newStats))
+        val newSize = CommandUtils.calculateTotalSize(sparkSession.sessionState, newTable, None)
+        if (newSize.isDefined) {
+          val newStats = CatalogStatistics(sizeInBytes = newSize.get)
+          catalog.alterTableStats(table.identifier, Some(newStats))
+        }
       } else {
         catalog.alterTableStats(table.identifier, None)
       }
     }
   }
 
-  def calculateTotalSize(sessionState: SessionState, catalogTable: CatalogTable): BigInt = {
-    if (catalogTable.partitionColumnNames.isEmpty) {
-      calculateLocationSize(sessionState, catalogTable.identifier, catalogTable.storage.locationUri)
+  def calculateTotalSize(
+      sessionState: SessionState,
+      catalogTable: CatalogTable,
+      rowCount: Option[BigInt]): Option[BigInt] = {
+
+      val totalSize: Option[BigInt] = if (DDLUtils.isExternalTable(catalogTable)) {
+      if (rowCount.isDefined) {
+        Some(BigInt(catalogTable.schema.map {_.dataType.defaultSize}.sum) * rowCount.get)
+      } else {
+        None
+      }
     } else {
-      // Calculate table size as a sum of the visible partitions. See SPARK-21079
-      val partitions = sessionState.catalog.listPartitions(catalogTable.identifier)
-      partitions.map { p =>
-        calculateLocationSize(sessionState, catalogTable.identifier, p.storage.locationUri)
-      }.sum
+      if (catalogTable.partitionColumnNames.isEmpty) {
+        Some(calculateLocationSize(sessionState, catalogTable.identifier,
+          catalogTable.storage.locationUri))
+      } else {
+        // Calculate table size as a sum of the visible partitions. See SPARK-21079
+        val partitions = sessionState.catalog.listPartitions(catalogTable.identifier)
+        val size = partitions.map { p =>
+          calculateLocationSize(sessionState, catalogTable.identifier, p.storage.locationUri)
+        }.sum
+        Some(size)
+      }
+    }
+    totalSize
+  }
+
+  def calculateTotoalSizeBasedOnTableSchema(
+     catalogTable: CatalogTable,
+     rowCount: Option[BigInt]): Option[BigInt] = {
+    if (rowCount.isDefined) {
+      Some(BigInt(catalogTable.schema.map {_.dataType.defaultSize}.sum) * rowCount.get)
+    } else {
+      None
     }
   }
 
@@ -114,13 +141,13 @@ object CommandUtils extends Logging {
 
   def compareAndGetNewStats(
       oldStats: Option[CatalogStatistics],
-      newTotalSize: BigInt,
+      newTotalSize: Option[BigInt],
       newRowCount: Option[BigInt]): Option[CatalogStatistics] = {
     val oldTotalSize = oldStats.map(_.sizeInBytes.toLong).getOrElse(-1L)
     val oldRowCount = oldStats.flatMap(_.rowCount.map(_.toLong)).getOrElse(-1L)
     var newStats: Option[CatalogStatistics] = None
-    if (newTotalSize >= 0 && newTotalSize != oldTotalSize) {
-      newStats = Some(CatalogStatistics(sizeInBytes = newTotalSize))
+    if (newTotalSize.isDefined  && newTotalSize.get != oldTotalSize) {
+      newStats = Some(CatalogStatistics(sizeInBytes = newTotalSize.get))
     }
     // We only set rowCount when noscan is false, because otherwise:
     // 1. when total size is not changed, we don't need to alter the table;

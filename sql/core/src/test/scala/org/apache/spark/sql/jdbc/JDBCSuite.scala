@@ -24,8 +24,8 @@ import java.util.{Calendar, GregorianCalendar, Properties}
 import org.h2.jdbc.JdbcSQLException
 import org.scalatest.{BeforeAndAfter, PrivateMethodTester}
 
-import org.apache.spark.{SparkException, SparkFunSuite}
-import org.apache.spark.sql.{AnalysisException, DataFrame, Row}
+import org.apache.spark.SparkException
+import org.apache.spark.sql.{AnalysisException, DataFrame, Row, StatisticsCollectionTestBase}
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
 import org.apache.spark.sql.execution.DataSourceScanExec
 import org.apache.spark.sql.execution.command.ExplainCommand
@@ -37,7 +37,7 @@ import org.apache.spark.sql.test.SharedSQLContext
 import org.apache.spark.sql.types._
 import org.apache.spark.util.Utils
 
-class JDBCSuite extends SparkFunSuite
+class JDBCSuite extends StatisticsCollectionTestBase
   with BeforeAndAfter with PrivateMethodTester with SharedSQLContext {
   import testImplicits._
 
@@ -1075,4 +1075,36 @@ class JDBCSuite extends SparkFunSuite
       val df3 = sql("SELECT * FROM test_sessionInitStatement")
       assert(df3.collect() === Array(Row(21519, 1234)))
     }
+
+  test("SPARK-XXXX: Analyze on JCBC table.") {
+    val tabName1 = "test_analyze1"
+    val tabName2 = "test_analyze2"
+    val tabName3 = "test_analyze3"
+    withTable(tabName1, tabName2) {
+      sql(
+        s"""
+         |CREATE TABLE $tabName1
+         |USING org.apache.spark.sql.jdbc
+         |OPTIONS (url '$urlWithUserAndPass', dbtable 'TEST.INTTYPES')
+       """.stripMargin)
+
+      sql(
+        s"""
+           |CREATE TABLE $tabName2
+           |USING org.apache.spark.sql.jdbc
+           |OPTIONS (url '$urlWithUserAndPass', dbtable 'TEST.INTTYPES')
+       """.stripMargin)
+
+      checkTableStats(tabName1, hasSizeInBytes = false, expectedRowCounts = None)
+      sql(s"ANALYZE TABLE $tabName1 COMPUTE STATISTICS")
+      val fetchedStats1 =
+        checkTableStats(tabName1, hasSizeInBytes = true, expectedRowCounts = Some(2))
+      assert(fetchedStats1.get.sizeInBytes == 42)
+
+      checkTableStats(tabName2, hasSizeInBytes = false, expectedRowCounts = None)
+      sql(s"ANALYZE TABLE $tabName2 COMPUTE STATISTICS noscan")
+      checkTableStats(tabName2, hasSizeInBytes = false, expectedRowCounts = None)
+
+    }
+  }
 }

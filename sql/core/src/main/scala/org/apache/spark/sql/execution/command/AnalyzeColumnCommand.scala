@@ -42,22 +42,24 @@ case class AnalyzeColumnCommand(
     if (tableMeta.tableType == CatalogTableType.VIEW) {
       throw new AnalysisException("ANALYZE TABLE is not supported on views.")
     }
-    val sizeInBytes = CommandUtils.calculateTotalSize(sessionState, tableMeta)
 
     // Compute stats for each column
     val (rowCount, newColStats) = computeColumnStats(sparkSession, tableIdentWithDB, columnNames)
+    val sizeInBytes = CommandUtils.calculateTotalSize(sessionState, tableMeta, Some(rowCount))
 
     // We also update table-level stats in order to keep them consistent with column-level stats.
-    val statistics = CatalogStatistics(
-      sizeInBytes = sizeInBytes,
-      rowCount = Some(rowCount),
-      // Newly computed column stats should override the existing ones.
-      colStats = tableMeta.stats.map(_.colStats).getOrElse(Map.empty) ++ newColStats)
+    if (sizeInBytes.isDefined) {
+      val statistics = CatalogStatistics(
+        sizeInBytes = sizeInBytes.get,
+        rowCount = Some(rowCount),
+        // Newly computed column stats should override the existing ones.
+        colStats = tableMeta.stats.map(_.colStats).getOrElse(Map.empty) ++ newColStats)
 
-    sessionState.catalog.alterTableStats(tableIdentWithDB, Some(statistics))
+      sessionState.catalog.alterTableStats(tableIdentWithDB, Some(statistics))
 
-    // Refresh the cached data source table in the catalog.
-    sessionState.catalog.refreshTable(tableIdentWithDB)
+      // Refresh the cached data source table in the catalog.
+      sessionState.catalog.refreshTable(tableIdentWithDB)
+    }
 
     Seq.empty[Row]
   }

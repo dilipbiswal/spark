@@ -39,9 +39,9 @@ case class AnalyzeTableCommand(
     }
 
     // Compute stats for the whole table
-    val newTotalSize = CommandUtils.calculateTotalSize(sessionState, tableMeta)
     val newRowCount =
       if (noscan) None else Some(BigInt(sparkSession.table(tableIdentWithDB).count()))
+    val newTotalSize = CommandUtils.calculateTotalSize(sessionState, tableMeta, newRowCount)
 
     // Update the metastore if the above statistics of the table are different from those
     // recorded in the metastore.
