@@ -163,15 +163,17 @@ object SetOperation {
   def unapply(p: SetOperation): Option[(LogicalPlan, LogicalPlan)] = Some((p.left, p.right))
 }
 
-case class Intersect(left: LogicalPlan, right: LogicalPlan) extends SetOperation(left, right) {
+abstract class IntersectBase(
+   left: LogicalPlan,
+   right: LogicalPlan) extends SetOperation(left, right) {
 
   override def output: Seq[Attribute] =
-    left.output.zip(right.output).map { case (leftAttr, rightAttr) =>
-      leftAttr.withNullability(leftAttr.nullable && rightAttr.nullable)
-    }
+  left.output.zip(right.output).map { case (leftAttr, rightAttr) =>
+    leftAttr.withNullability(leftAttr.nullable && rightAttr.nullable)
+  }
 
   override protected def validConstraints: Set[Expression] =
-    leftConstraints.union(rightConstraints)
+  leftConstraints.union(rightConstraints)
 
   override def maxRows: Option[Long] = {
     if (children.exists(_.maxRows.isEmpty)) {
@@ -182,13 +184,18 @@ case class Intersect(left: LogicalPlan, right: LogicalPlan) extends SetOperation
   }
 }
 
-case class Except(left: LogicalPlan, right: LogicalPlan) extends SetOperation(left, right) {
+case class Intersect(left: LogicalPlan, right: LogicalPlan) extends IntersectBase(left, right)
+case class IntersectAll(left: LogicalPlan, right: LogicalPlan) extends IntersectBase(left, right)
 
+abstract class ExceptBase(left: LogicalPlan, right: LogicalPlan) extends SetOperation(left, right) {
   /** We don't use right.output because those rows get excluded from the set. */
   override def output: Seq[Attribute] = left.output
 
   override protected def validConstraints: Set[Expression] = leftConstraints
 }
+
+case class Except(left: LogicalPlan, right: LogicalPlan) extends ExceptBase(left, right)
+case class ExceptAll(left: LogicalPlan, right: LogicalPlan) extends ExceptBase(left, right)
 
 /** Factory for constructing new `Union` nodes. */
 object Union {
