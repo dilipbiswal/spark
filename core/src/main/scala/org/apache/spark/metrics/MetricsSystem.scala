@@ -92,6 +92,10 @@ private[spark] class MetricsSystem private (
     metricsServlet.map(_.getHandlers(conf)).getOrElse(Array())
   }
 
+  def getConf(): SparkConf = {
+    conf
+  }
+
   metricsConfig.initialize()
 
   def start() {
