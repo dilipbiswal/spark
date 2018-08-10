@@ -2204,4 +2204,13 @@ class SQLQuerySuite extends QueryTest with SQLTestUtils with TestHiveSingleton {
     }
   }
 
+  test("NESTED Subquery support") {
+    sql("create table left(c1 int)")
+    sql("insert into left values (5), (null), (11), (8)")
+    sql("create table right(id int)")
+    sql("insert into right values (11), (null), (7), (8)")
+    sql("select * from left where c1 = 5 or c1 not in (select id from right)").explain(true)
+    sql("select * from left where c1 = 5 or c1 not in (select id from right)").show()
+  }
+
 }
