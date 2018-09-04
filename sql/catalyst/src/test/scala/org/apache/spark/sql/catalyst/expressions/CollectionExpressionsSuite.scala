@@ -62,6 +62,10 @@ class CollectionExpressionsSuite extends SparkFunSuite with ExpressionEvalHelper
     val a2 = Literal.create(Seq("b", "a"), ArrayType(StringType))
     val a3 = Literal.create(Seq("b", null, "a"), ArrayType(StringType))
     val a4 = Literal.create(Seq(null, null), ArrayType(NullType))
+    val a5 = Literal.create(Seq(true, false, true, false),
+      ArrayType(BooleanType, containsNull = false))
+    val a6 = Literal.create(Seq(true, false, true, false), ArrayType(BooleanType))
+    val a7 = Literal.create(Seq(true, false, true, null, false), ArrayType(BooleanType))
 
     checkEvaluation(new SortArray(a0), Seq(1, 2, 3))
     checkEvaluation(new SortArray(a1), Seq[Integer]())
@@ -79,6 +83,10 @@ class CollectionExpressionsSuite extends SparkFunSuite with ExpressionEvalHelper
     checkEvaluation(Literal.create(null, ArrayType(StringType)), null)
     checkEvaluation(new SortArray(a4), Seq(null, null))
 
+    checkEvaluation(new SortArray(a5), Seq(false, false, true, true))
+    checkEvaluation(new SortArray(a6), Seq(false, false, true, true))
+    checkEvaluation(new SortArray(a7), Seq(null, false, false, true, true))
+
     val typeAS = ArrayType(StructType(StructField("a", IntegerType) :: Nil))
     val arrayStruct = Literal.create(Seq(create_row(2), create_row(1)), typeAS)
 
@@ -90,6 +98,8 @@ class CollectionExpressionsSuite extends SparkFunSuite with ExpressionEvalHelper
     val a1 = Literal.create(Seq[String](null, ""), ArrayType(StringType))
     val a2 = Literal.create(Seq(null), ArrayType(LongType))
     val a3 = Literal.create(null, ArrayType(StringType))
+    // Explicitly mark the array type not nullable (spark-25308)
+    val a4 = Literal.create(Seq(1, 2, 3), ArrayType(IntegerType, containsNull = false))
 
     checkEvaluation(ArrayContains(a0, Literal(1)), true)
     checkEvaluation(ArrayContains(a0, Literal(0)), false)
@@ -104,6 +114,8 @@ class CollectionExpressionsSuite extends SparkFunSuite with ExpressionEvalHelper
 
     checkEvaluation(ArrayContains(a3, Literal("")), null)
     checkEvaluation(ArrayContains(a3, Literal.create(null, StringType)), null)
+
+    checkEvaluation(ArrayContains(a4, Literal(1)), true)
 
     // binary
     val b0 = Literal.create(Seq[Array[Byte]](Array[Byte](5, 6), Array[Byte](1, 2)),
