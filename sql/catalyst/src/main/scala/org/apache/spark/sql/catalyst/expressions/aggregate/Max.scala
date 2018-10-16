@@ -57,3 +57,44 @@ case class Max(child: Expression) extends DeclarativeAggregate {
 
   override lazy val evaluateExpression: AttributeReference = max
 }
+
+abstract class AnyAggBase(arg: Expression, child: Expression)
+  extends RuntimeReplaceableAggrgate with ImplicitCastInputTypes {
+
+  override def children: Seq[Expression] = child :: arg :: Nil
+
+  override def flatArguments: Iterator[Any] = Iterator(arg)
+  override def sql(isDistinct: Boolean): String = s"$prettyName(${arg.sql})"
+  override def sql: String = s"$prettyName(${arg.sql})"
+
+  override def dataType: DataType = BooleanType
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(BooleanType, AnyDataType)
+
+  override def checkInputDataTypes(): TypeCheckResult = {
+    arg.dataType match {
+      case dt if dt != BooleanType =>
+        TypeCheckResult.TypeCheckFailure(s"Input to function '$prettyName' should have been " +
+          s"${BooleanType.simpleString}, but it's [${child.dataType.catalogString}].")
+      case _ => TypeCheckResult.TypeCheckSuccess
+    }
+  }
+}
+
+@ExpressionDescription(
+  usage = "_FUNC_(expr) - Returns true if at least one value of `expr` is true.")
+case class AnyAgg(arg: Expression, child: Expression) extends AnyAggBase(arg, child) {
+  def this(arg: Expression) = {
+    this(arg, Max(arg))
+  }
+  override def nodeName: String = "Any"
+}
+
+@ExpressionDescription(
+  usage = "_FUNC_(expr) - Returns true if at least one value of `expr` is true.")
+case class SomeAgg(arg: Expression, child: Expression) extends AnyAggBase(arg, child) {
+  def this(arg: Expression) = {
+    this(arg, Max(arg))
+  }
+  override def nodeName: String = "Some"
+}

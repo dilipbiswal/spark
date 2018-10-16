@@ -21,6 +21,7 @@ import java.util.Locale
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, TypeCoercion}
+import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.trees.TreeNode
@@ -282,6 +283,40 @@ trait RuntimeReplaceable extends UnaryExpression with Unevaluable {
   override lazy val canonicalized: Expression = child.canonicalized
 }
 
+/**
+ * An aggregate expression that gets replaced at runtime (currently by the optimizer) into a
+ * different aggregate expression for evaluation. This is mainly used to provide compatibility
+ * with other databases. For example, we use this to support every/any/some by replacing
+ * with min/max
+ *
+ * A RuntimeReplaceable should have the original parameters along with a "child" expression in the
+ * case class constructor, and define a normal constructor that accepts only the original
+ * parameters.
+ *
+ * For an example, see [[org.apache.spark.sql.catalyst.expressions.aggregate.EveryAgg]].
+ * To make sure the explain plan and expression SQL works correctly, the implementation should
+ * also override flatArguments method and sql method.
+ */
+trait RuntimeReplaceableAggrgate extends DeclarativeAggregate {
+  def child: Expression
+
+  override def nullable: Boolean = true
+
+  override lazy val aggBufferAttributes =
+    throw new UnsupportedOperationException(s"Cannot evaluate aggBufferAttributes: $this")
+
+  override lazy val initialValues: Seq[Expression] =
+    throw new UnsupportedOperationException(s"Cannot evaluate initialValues: $this")
+
+  override lazy val updateExpressions: Seq[Expression] =
+    throw new UnsupportedOperationException(s"Cannot evaluate updateExpressions: $this")
+
+  override lazy val mergeExpressions: Seq[Expression] =
+    throw new UnsupportedOperationException(s"Cannot evaluate mergeExpressions: $this")
+
+  override lazy val evaluateExpression: Expression =
+    throw new UnsupportedOperationException(s"Cannot evaluate evaluateExpression: $this")
+}
 
 /**
  * Expressions that don't have SQL representation should extend this trait.  Examples are

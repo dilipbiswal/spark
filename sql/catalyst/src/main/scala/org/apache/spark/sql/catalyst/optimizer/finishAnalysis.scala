@@ -20,7 +20,7 @@ package org.apache.spark.sql.catalyst.optimizer
 import scala.collection.mutable
 
 import org.apache.spark.sql.catalyst.catalog.SessionCatalog
-import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.catalyst.expressions.{RuntimeReplaceableAggrgate, _}
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.rules._
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
@@ -35,6 +35,7 @@ import org.apache.spark.sql.types._
 object ReplaceExpressions extends Rule[LogicalPlan] {
   def apply(plan: LogicalPlan): LogicalPlan = plan transformAllExpressions {
     case e: RuntimeReplaceable => e.child
+    case e: RuntimeReplaceableAggrgate => e.child
   }
 }
 

@@ -300,6 +300,10 @@ object FunctionRegistry {
     expression[CollectList]("collect_list"),
     expression[CollectSet]("collect_set"),
     expression[CountMinSketchAgg]("count_min_sketch"),
+    expression[EveryAgg]("every"),
+    expression[AnyAgg]("any"),
+    expression[SomeAgg]("some"),
+
 
     // string functions
     expression[Ascii]("ascii"),
@@ -539,7 +543,9 @@ object FunctionRegistry {
 
     // For `RuntimeReplaceable`, skip the constructor with most arguments, which is the main
     // constructor and contains non-parameter `child` and should not be used as function builder.
-    val constructors = if (classOf[RuntimeReplaceable].isAssignableFrom(tag.runtimeClass)) {
+    val constructors = if (classOf[RuntimeReplaceable].isAssignableFrom(tag.runtimeClass) ||
+      classOf[RuntimeReplaceableAggrgate].isAssignableFrom(tag.runtimeClass))
+    {
       val all = tag.runtimeClass.getConstructors
       val maxNumArgs = all.map(_.getParameterCount).max
       all.filterNot(_.getParameterCount == maxNumArgs)

@@ -1916,6 +1916,9 @@ class Analyzer(
           case we @ WindowExpression(
               ae @ AggregateExpression(function, _, _, _),
               spec: WindowSpecDefinition) =>
+            if (function.isInstanceOf[RuntimeReplaceableAggrgate]) {
+              failAnalysis(s"'${function.prettyName}' is not supported as a window function.")
+            }
             val newChildren = function.children.map(extractExpr)
             val newFunction = function.withNewChildren(newChildren).asInstanceOf[AggregateFunction]
             val newAgg = ae.copy(aggregateFunction = newFunction)
