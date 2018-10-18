@@ -78,9 +78,28 @@ case class LambdaFunction(
 }
 
 object LambdaFunction {
+  val LAMBDA_VARIABLE_KEY = "spark.lambda.variable"
+  val metaData = new MetadataBuilder()
+    .putBoolean(LAMBDA_VARIABLE_KEY, true)
+    .build()
+
   val identity: LambdaFunction = {
     val id = UnresolvedAttribute.quoted("id")
     LambdaFunction(id, Seq(id))
+  }
+
+  def isLambdaAttribute(attr: Attribute): Boolean = {
+    attr.metadata.contains(LAMBDA_VARIABLE_KEY)
+  }
+
+  def apply(function: Expression, arguments: Seq[NamedExpression]): LambdaFunction = {
+    val updatedFunction = function transform {
+      case u : UnresolvedAttribute => u.withMetadata(metaData)
+    }
+    val updatedArguments = arguments.map { _.transform {
+      case u : UnresolvedAttribute => u.withMetadata(metaData)
+    }}
+    new LambdaFunction(updatedFunction, updatedArguments.asInstanceOf[Seq[NamedExpression]])
   }
 }
 

@@ -27,7 +27,7 @@ import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst._
 import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.encoders.OuterScopes
-import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.catalyst.expressions.{LambdaFunction, _}
 import org.apache.spark.sql.catalyst.expressions.SubExprUtils._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.expressions.objects._
@@ -880,23 +880,6 @@ class Analyzer(
       }
     }
 
-    private def resolve(e: Expression, q: LogicalPlan): Expression = e match {
-      case f: LambdaFunction if !f.bound => f
-      case u @ UnresolvedAttribute(nameParts) =>
-        // Leave unchanged if resolution fails. Hopefully will be resolved next round.
-        val result =
-          withPosition(u) {
-            q.resolveChildren(nameParts, resolver)
-              .orElse(resolveLiteralFunction(nameParts, u, q))
-              .getOrElse(u)
-          }
-        logDebug(s"Resolving $u to $result")
-        result
-      case UnresolvedExtractValue(child, fieldExpr) if child.resolved =>
-        ExtractValue(child, fieldExpr, resolver)
-      case _ => e.mapChildren(resolve(_, q))
-    }
-
     def apply(plan: LogicalPlan): LogicalPlan = plan.resolveOperatorsUp {
       case p: LogicalPlan if !p.childrenResolved => p
 
@@ -954,7 +937,7 @@ class Analyzer(
 
       case q: LogicalPlan =>
         logTrace(s"Attempting to resolve ${q.simpleString}")
-        q.mapExpressions(resolve(_, q))
+        q.mapExpressions(resolveExpression(_, q, throws = true, resolveFromChildAttributes = true))
     }
 
     def newAliases(expressions: Seq[NamedExpression]): Seq[NamedExpression] = {
@@ -1054,7 +1037,8 @@ class Analyzer(
   protected[sql] def resolveExpression(
       expr: Expression,
       plan: LogicalPlan,
-      throws: Boolean = false): Expression = {
+      throws: Boolean = false,
+      resolveFromChildAttributes: Boolean = false): Expression = {
     if (expr.resolved) return expr
     // Resolve expression in one round.
     // If throws == false or the desired attribute doesn't exist
@@ -1063,7 +1047,15 @@ class Analyzer(
     try {
       expr transformUp {
         case GetColumnByOrdinal(ordinal, _) => plan.output(ordinal)
-        case u @ UnresolvedAttribute(nameParts) =>
+        case u@UnresolvedAttribute(nameParts, metadata)
+          if resolveFromChildAttributes && !LambdaFunction.isLambdaAttribute(u) =>
+          withPosition(u) {
+            plan.resolveChildren(nameParts, resolver)
+              .orElse(resolveLiteralFunction(nameParts, u, plan))
+              .getOrElse(u)
+          }
+        case u@UnresolvedAttribute(nameParts, metadata)
+          if !resolveFromChildAttributes && !LambdaFunction.isLambdaAttribute(u) =>
           withPosition(u) {
             plan.resolve(nameParts, resolver)
               .orElse(resolveLiteralFunction(nameParts, u, plan))
@@ -1365,7 +1357,7 @@ class Analyzer(
       plan resolveOperatorsDown {
         case q: LogicalPlan if q.childrenResolved && !q.resolved =>
           q transformExpressions {
-            case u @ UnresolvedAttribute(nameParts) =>
+            case u @ UnresolvedAttribute(nameParts, _) =>
               withPosition(u) {
                 try {
                   outer.resolve(nameParts, resolver) match {

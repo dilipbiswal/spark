@@ -22,7 +22,7 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.types.DataType
+import org.apache.spark.sql.types.{DataType, Metadata}
 
 /**
  * Resolve a higher order functions from the catalog. This is different from regular function
@@ -150,13 +150,13 @@ case class ResolveLambdaVariables(conf: SQLConf) extends Rule[LogicalPlan] {
       val lambdaMap = l.arguments.map(v => canonicalizer(v.name) -> v).toMap
       l.mapChildren(resolve(_, parentLambdaMap ++ lambdaMap))
 
-    case u @ UnresolvedAttribute(name +: nestedFields) =>
+    case u @ UnresolvedAttribute(name +: nestedFields, _) =>
       parentLambdaMap.get(canonicalizer(name)) match {
         case Some(lambda) =>
           nestedFields.foldLeft(lambda: Expression) { (expr, fieldName) =>
             ExtractValue(expr, Literal(fieldName), conf.resolver)
           }
-        case None => u
+        case None => u.withMetadata(Metadata.empty)
       }
 
     case _ =>

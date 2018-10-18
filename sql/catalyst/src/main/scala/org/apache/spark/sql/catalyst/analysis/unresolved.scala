@@ -96,7 +96,9 @@ case class UnresolvedTableValuedFunction(
 /**
  * Holds the name of an attribute that has yet to be resolved.
  */
-case class UnresolvedAttribute(nameParts: Seq[String]) extends Attribute with Unevaluable {
+case class UnresolvedAttribute(
+    nameParts: Seq[String],
+    override val metadata: Metadata = Metadata.empty) extends Attribute with Unevaluable {
 
   def name: String =
     nameParts.map(n => if (n.contains(".")) s"`$n`" else n).mkString(".")
@@ -111,7 +113,8 @@ case class UnresolvedAttribute(nameParts: Seq[String]) extends Attribute with Un
   override def withNullability(newNullability: Boolean): UnresolvedAttribute = this
   override def withQualifier(newQualifier: Seq[String]): UnresolvedAttribute = this
   override def withName(newName: String): UnresolvedAttribute = UnresolvedAttribute.quoted(newName)
-  override def withMetadata(newMetadata: Metadata): Attribute = this
+  override def withMetadata(newMetadata: Metadata): Attribute =
+    UnresolvedAttribute(nameParts, newMetadata)
 
   override def toString: String = s"'$name"
 

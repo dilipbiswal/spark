@@ -1340,7 +1340,7 @@ class AstBuilder(conf: SQLConf) extends SqlBaseBaseVisitor[AnyRef] with Logging 
     val arguments = ctx.IDENTIFIER().asScala.map { name =>
       UnresolvedAttribute.quoted(name.getText)
     }
-    LambdaFunction(expression(ctx.expression), arguments)
+    LambdaFunction.apply(expression(ctx.expression), arguments)
   }
 
   /**
@@ -1475,7 +1475,7 @@ class AstBuilder(conf: SQLConf) extends SqlBaseBaseVisitor[AnyRef] with Logging 
   override def visitDereference(ctx: DereferenceContext): Expression = withOrigin(ctx) {
     val attr = ctx.fieldName.getText
     expression(ctx.base) match {
-      case unresolved_attr @ UnresolvedAttribute(nameParts) =>
+      case unresolved_attr @ UnresolvedAttribute(nameParts, _) =>
         ctx.fieldName.getStart.getText match {
           case escapedIdentifier(columnNameRegex)
             if conf.supportQuotedRegexColumnName && canApplyRegex(ctx) =>
