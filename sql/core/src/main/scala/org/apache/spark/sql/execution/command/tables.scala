@@ -529,10 +529,13 @@ abstract class DescribeCommandBase extends RunnableCommand {
  * }}}
  */
 case class DescribeTableCommand(
+    inputText: String,
     table: TableIdentifier,
     partitionSpec: TablePartitionSpec,
     isExtended: Boolean)
   extends DescribeCommandBase {
+
+  override def simpleString(maxFields: Int): String = s"$nodeName $inputText".trim
 
   override def run(sparkSession: SparkSession): Seq[Row] = {
     val result = new ArrayBuffer[Row]
@@ -661,10 +664,13 @@ case class DescribeQueryCommand(queryText: String, plan: LogicalPlan)
  * }}}
  */
 case class DescribeColumnCommand(
+    inputText: String,
     table: TableIdentifier,
     colNameParts: Seq[String],
     isExtended: Boolean)
   extends RunnableCommand {
+
+  override def simpleString(maxFields: Int): String = s"$nodeName $inputText".trim
 
   override val output: Seq[Attribute] = {
     Seq(

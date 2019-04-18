@@ -216,14 +216,15 @@ class SparkSqlParserSuite extends AnalysisTest {
   }
 
   test("SPARK-17328 Fix NPE with EXPLAIN DESCRIBE TABLE") {
-    assertEqual("describe t",
-      DescribeTableCommand(TableIdentifier("t"), Map.empty, isExtended = false))
+    val table = "t"
+    assertEqual(s"describe $table",
+      DescribeTableCommand(table, TableIdentifier("t"), Map.empty, isExtended = false))
     assertEqual("describe table t",
-      DescribeTableCommand(TableIdentifier("t"), Map.empty, isExtended = false))
+      DescribeTableCommand(table, TableIdentifier("t"), Map.empty, isExtended = false))
     assertEqual("describe table extended t",
-      DescribeTableCommand(TableIdentifier("t"), Map.empty, isExtended = true))
+      DescribeTableCommand(table, TableIdentifier("t"), Map.empty, isExtended = true))
     assertEqual("describe table formatted t",
-      DescribeTableCommand(TableIdentifier("t"), Map.empty, isExtended = true))
+      DescribeTableCommand(table, TableIdentifier("t"), Map.empty, isExtended = true))
   }
 
   test("describe query") {
@@ -235,26 +236,26 @@ class SparkSqlParserSuite extends AnalysisTest {
   test("describe table column") {
     assertEqual("DESCRIBE t col",
       DescribeColumnCommand(
-        TableIdentifier("t"), Seq("col"), isExtended = false))
+        "t col", TableIdentifier("t"), Seq("col"), isExtended = false))
     assertEqual("DESCRIBE t `abc.xyz`",
       DescribeColumnCommand(
-        TableIdentifier("t"), Seq("abc.xyz"), isExtended = false))
+        "t `abc.xyz`", TableIdentifier("t"), Seq("abc.xyz"), isExtended = false))
     assertEqual("DESCRIBE t abc.xyz",
       DescribeColumnCommand(
-        TableIdentifier("t"), Seq("abc", "xyz"), isExtended = false))
+        "t abc.xyz", TableIdentifier("t"), Seq("abc", "xyz"), isExtended = false))
     assertEqual("DESCRIBE t `a.b`.`x.y`",
       DescribeColumnCommand(
-        TableIdentifier("t"), Seq("a.b", "x.y"), isExtended = false))
+        "t `a.b`.`x.y`", TableIdentifier("t"), Seq("a.b", "x.y"), isExtended = false))
 
     assertEqual("DESCRIBE TABLE t col",
       DescribeColumnCommand(
-        TableIdentifier("t"), Seq("col"), isExtended = false))
+        "t col", TableIdentifier("t"), Seq("col"), isExtended = false))
     assertEqual("DESCRIBE TABLE EXTENDED t col",
       DescribeColumnCommand(
-        TableIdentifier("t"), Seq("col"), isExtended = true))
+        "t col", TableIdentifier("t"), Seq("col"), isExtended = true))
     assertEqual("DESCRIBE TABLE FORMATTED t col",
       DescribeColumnCommand(
-        TableIdentifier("t"), Seq("col"), isExtended = true))
+        "t col", TableIdentifier("t"), Seq("col"), isExtended = true))
 
     intercept("DESCRIBE TABLE t PARTITION (ds='1970-01-01') col",
       "DESC TABLE COLUMN for a specific partition is not supported")
