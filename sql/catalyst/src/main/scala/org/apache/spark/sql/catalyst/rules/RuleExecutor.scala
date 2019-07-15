@@ -167,7 +167,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
     private val logBatches = SQLConf.get.optimizerPlanChangeBatches.map(Utils.stringToSeq)
 
     def logRule(ruleName: String, oldPlan: TreeType, newPlan: TreeType): Unit = {
-      /*
+/*
       if (!oldPlan.fastEquals(newPlan)) {
         println(s"Old Plan $ruleName")
         println(oldPlan.treeString)
@@ -175,6 +175,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
         println(newPlan.treeString)
       }
       */
+
       if (logRules.isEmpty || logRules.get.contains(ruleName)) {
         def message(): String = {
           s"""

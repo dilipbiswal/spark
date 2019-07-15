@@ -458,8 +458,9 @@ class LeftSemiAntiJoinToSubqueryEquivalencySuite extends QueryTest with SharedSQ
           |   (select * from t1 right join t2 on t1b = t2b and t2c >= 2)
           | select *
           | from   join
-          | where  not exists (select 1 from t3 where t3a = t1a and t3b > t2b)
+          | where  (t1a, t2b) not in (select t3a, t3b from t3)
         """.stripMargin)
+
     val plan2 =
       sql(
         """
@@ -469,14 +470,13 @@ class LeftSemiAntiJoinToSubqueryEquivalencySuite extends QueryTest with SharedSQ
           | from   join
           |        left anti join
           |        (select t3a, t3b
-          |         from   t3
-          |         where  t3a is not null
-          |         and    t3b is not null) t3
-          |        on t3a = t1a and t3b > t2b
+          |         from   t3) t3
+          |        on ((t1a = t3a  or isnull(t1a = t3a)) and (t2b = t3b or isnull(t2b = t3b)))
         """.stripMargin)
     checkAnswer(plan1, plan2)
     val optPlan = plan1.queryExecution.optimizedPlan
     checkLeftSemiOrAntiPlan(optPlan)
+    comparePlans(plan1.queryExecution.optimizedPlan, plan2.queryExecution.optimizedPlan)
   }
   /**
    * TC 2.7: 1B-2D-3A
@@ -492,6 +492,7 @@ class LeftSemiAntiJoinToSubqueryEquivalencySuite extends QueryTest with SharedSQ
           | from   join
           | where  not exists (select 1 from t3 where t3a = t1a and t3b >= 1)
         """.stripMargin)
+
     val plan2 =
       sql(
         """
@@ -519,6 +520,7 @@ class LeftSemiAntiJoinToSubqueryEquivalencySuite extends QueryTest with SharedSQ
           | from   join
           | where  exists (select 1 from t3 where t3a = t2a and t3b >= 1)
         """.stripMargin)
+
     val plan2 =
       sql(
         """
@@ -739,7 +741,7 @@ class LeftSemiAntiJoinToSubqueryEquivalencySuite extends QueryTest with SharedSQ
    * TC 3.3: Negative case - LeftSemi over Union
    * Expected result: No push down
    */
-  /*
+
   test("TC 3.3: LeftSemi over Union") {
     val plan1 =
       sql(
@@ -750,11 +752,9 @@ class LeftSemiAntiJoinToSubqueryEquivalencySuite extends QueryTest with SharedSQ
           |           union all
           |           select t3b, t3a
           |           from   t3) un
-          | where    exists (select 1
-          |                  from   t1 a
-          |                  where  a.t1b = un.t2b
-          |                  and    a.t1a = un.t2a)
+          | where    (un.t2a, un.t2b) in (select t1a, t1b from t1)
         """.stripMargin)
+
     val plan2 =
       sql(
         """
@@ -765,16 +765,11 @@ class LeftSemiAntiJoinToSubqueryEquivalencySuite extends QueryTest with SharedSQ
           |           select t3b, t3a
           |           from   t3) un
           |          left semi join t1 a
-          |          on  a.t1b = un.t2b
-          |          and a.t1a = un.t2a
+          |          on  a.t1a = un.t2a
+          |          and a.t1b = un.t2b
         """.stripMargin)
     checkAnswer(plan1, plan2)
     comparePlans(plan1.queryExecution.optimizedPlan, plan2.queryExecution.optimizedPlan)
-    /*
-    val optPlan = plan1.queryExecution.optimizedPlan
-    checkLeftSemiOrAntiPlan(optPlan)
-    */
   }
-  */
 }
 
