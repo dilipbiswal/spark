@@ -18,24 +18,24 @@ license: |
   See the License for the specific language governing permissions and
   limitations under the License.
 ---
-Spark SQL conforms with the ANSI SQL standard
-Spark supports `SELECT` statement which are used to retrieve result sets
-from one or more table. The queries support in spark is conformant with
-ANSI SQL standard.  
+Spark supports `SELECT` statement and conforms to ANSI SQL standard. Queries are
+used to retrieve result sets from one or more table. The following section 
+describes the overall query syntax and the sub-sections cover different constructs
+of a query along with examples. 
 
 ### Syntax
 {% highlight sql %}
 [WITH with_query [, ...]]
 SELECT [hints, ...] [ALL|DISTINCT] named_expression[, named_expression, ...]
-  FROM relation[, relation, ...]
-  [lateral_view[, lateral_view, ...]]
+  FROM from_item [, from_item, ...]
+  [lateral_view [, lateral_view, ...]]
   [WHERE boolean_expression]
   [GROUP BY expression [, ...] ]
   [HAVING boolean_expression [, ...] ]
   [[ORDER | SORT ] BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
   [CLUSTER BY expressions]
   [DISTRIBUTE BY expressions]
-  [SORT BY sort_expressions]
+  { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]
   [WINDOW named_window[, WINDOW named_window, ...]]
   [LIMIT {ALL | expression}]
 
@@ -55,19 +55,20 @@ sort_expressions:
   : expression [ASC|DESC][, expression [ASC|DESC], ...]
 {% endhighlight %}
 
-{% highlight sql %}
-[ WITH [ RECURSIVE ] with_query [, ...] ]
-SELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]
-    * | expression [ [ AS ] output_name ] [, ...]
-    [ FROM from_item [, ...] ]
-    [ WHERE condition ]
-    [ GROUP BY expression [, ...] ]
-    [ HAVING condition [, ...] ]
-    [ WINDOW window_name AS ( window_definition ) [, ...] ]
-    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]
-    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]
-    [ LIMIT { count | ALL } ]
-    [ OFFSET start [ ROW | ROWS ] ]
-    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
-    [ FOR { UPDATE | SHARE } [ OF table_name [, ...] ] [ NOWAIT ] [...] ]
-{% endhighlight %}
+### Parameters
+<dl>
+  <dt><code><em>with_query</em></code></dt>
+  <dd>Optional common table expressions (CTEs) may be specified before the main <code>SELECT</code> query block. These table expressions
+  are allowed to be referenced later in the main query. This is useful to abstract out repeated sub query blocks in the main query and
+  improves readability of the query.</dd>
+  <dt><code><em>hints</em></code></dt>
+  <dd>Hints can be used to help spark optimizer make better planning decisions. Below are the supported list of hints:
+    
+  <dt><code><em>named_expression</em></code></dt>
+  <dt><code><em>from_item</em></code></dt>
+  <dt><code><em>lateral_view</em></code></dt>
+  <dt><code><em>boolean_expression</em></code></dt>
+  <dt><code><em>expression</em></code></dt>
+  <dt><code><em>named_window</em></code></dt>
+</dl>
+
