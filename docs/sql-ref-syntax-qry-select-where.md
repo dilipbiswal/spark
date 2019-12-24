@@ -1,7 +1,7 @@
 ---
 layout: global
-title: GROUPBY Clause
-displayTitle: GROUPBY Clause
+title: SELECT
+displayTitle: WHERE clause
 license: |
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@ license: |
   See the License for the specific language governing permissions and
   limitations under the License.
 ---
-The <code>GROUP BY</code> clause is used to group the rows based on a set of specified grouping expressions and compute aggregations on 
-the group of rows based on one or more specified aggregate functions.
+The <code>WHERE</code> clause is used to limit the results of the <code>FROM</code>
+clause of query or subquery based on specified condition.
 
 ### Syntax
 {% highlight sql %}
