@@ -23,10 +23,8 @@ the group of rows based on one or more specified aggregate functions.
 
 ### Syntax
 {% highlight sql %}
-SELECT ...
-FROM ...
-WHERE boolean_expression
-[...]
+GROUP BY [GROUPING SETS grouping_sets] grouping_expressions 
+    [(WITH ROLLUP | WITH CUBE | GROUPING SETS grouping_sets))]
 {% endhighlight %}
 
 ### Parameters
