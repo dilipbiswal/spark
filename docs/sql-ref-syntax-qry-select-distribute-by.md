@@ -1,7 +1,7 @@
 ---
 layout: global
-title: LIMIT Clause
-displayTitle: LIMIT Clause
+title: DISTRIBUTE BY Clause
+displayTitle: DISTRIBUTE BY Clause
 license: |
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -18,24 +18,20 @@ license: |
   See the License for the specific language governing permissions and
   limitations under the License.
 ---
-The <code>LIMIT</code> clause is used to constrain the number of rows returned by the <code>SELECT</code> statement. 
-In general, this clause is used in conjuction with <code>ORDER BY</code> to ensure that the results are deterministic.
+The <code>DISTRIBUTE BY</code> clause is used to repartition the data based
+on the input expressions. Unlike the `CLUSTER BY` clause, this does not
+sort the data within each partition. 
 
 ### Syntax
 {% highlight sql %}
-LIMIT { ALL | integer_expression }
+DISTRIBUTE BY { expression [ , ...] }
 {% endhighlight %}
 
 ### Parameters
 <dl>
-  <dt><code><em>ALL</em></code></dt>
+  <dt><code><em>expression</em></code></dt>
   <dd>
-    If specified, the query returns all the rows. In otherwords, no limit is applied if this
-    option is specified.
-  </dd>
-  <dt><code><em>integer_expression</em></code></dt>
-  <dd>
-    Specifies a expression that returns an integer. 
+    Specifies combination of one or more values, operators and SQL functions that results in a value.
   </dd>
 </dl>
 
@@ -48,43 +44,41 @@ INSERT INTO person VALUES ('Zen Hui', 25),
                           ('Mike A', 25),
                           ('John A', 18), 
                           ('Jack N', 16);
+-- Reduce the number of shuffle partitions to 2 to illustrate the behaviour of `DISTRIBUTE BY`.
+-- Its easier to see the clustering and sorting behaviour with less number of partitions.
+SET spark.sql.shuffle.partitions = 2;
                         
--- Select the first two rows.
-SELECT name, age FROM person ORDER BY name LIMIT 2;
+-- Select the rows with no ordering. Please note that without any sort directive, the results
+-- of the query is not deterministic. Its included here to just contrast it with the 
+-- behaviour of `DISTRIBUTE BY`. The query below produces rows where age column are not
+-- clustered together.
+SELECT age, name FROM person;
 
-  +------+---+
-  |name  |age|
-  +------+---+
-  |Anil B|18 |
-  |Jack N|16 |
-  +------+---+
+  +---+-------+
+  |age|name   |
+  +---+-------+
+  |16 |Shone S|
+  |25 |Zen Hui|
+  |16 |Jack N |
+  |25 |Mike A |
+  |18 |John A |
+  |18 |Anil B |
+  +---+-------+
 
--- Specifying ALL option on LIMIT returns all the rows.
-SELECT name, age FROM person ORDER BY name LIMIT ALL;
+-- Produces rows clustered by age. Persons with same age are clustered together.
+-- Unlike `CLUSTER BY` clause, the rows are not sorted within a partition.
+SELECT age, name FROM person DISTRIBUTE BY age;
 
-+-------+---+
-|name   |age|
-+-------+---+
-|Anil B |18 |
-|Jack N |16 |
-|John A |18 |
-|Mike A |25 |
-|Shone S|16 |
-|Zen Hui|25 |
-+-------+---+
-
--- A function expression as a input to limit.
-SELECT name, age FROM person ORDER BY name LIMIT length('SPARK')
-
-+-------+---+
-|   name|age|
-+-------+---+
-| Anil B| 18|
-| Jack N| 16|
-| John A| 18|
-| Mike A| 25|
-|Shone S| 16|
-+-------+---+
+  +---+-------+
+  |age|name   |
+  +---+-------+
+  |25 |Zen Hui|
+  |25 |Mike A |
+  |18 |John A |
+  |18 |Anil B |
+  |16 |Shone S|
+  |16 |Jack N |
+  +---+-------+
 {% endhighlight %}
 
 ### Related clauses
@@ -94,6 +88,6 @@ SELECT name, age FROM person ORDER BY name LIMIT length('SPARK')
 - [HAVING clause](sql-ref-syntax-qry-select-having.html)
 - [SORT BY clause](sql-ref-syntax-qry-select-sortby.html)
 - [CLUSTER BY clause](sql-ref-syntax-qry-select-clusterby.html)
-- [DISTRIBUTE BY clause](sql-ref-syntax-qry-select-distribute-by.html)
 - [WINDOW clause](sql-ref-syntax-qry-select-window.html)
+- [LIMIT clause](sql-ref-syntax-qry-select-limit.html)
 - [SET operators](sql-ref-syntax-qry-select-set-operators.html)
