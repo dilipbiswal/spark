@@ -2865,6 +2865,67 @@ class DataFrame:
         """
         ...
 
+    def nearestByJoin(
+        self,
+        other: "DataFrame",
+        rankingExpression: Column,
+        numResults: int,
+        direction: str,
+        joinType: str = "inner",
+        mode: str = "approx",
+    ) -> "DataFrame":
+        """
+        Nearest-by top-K ranking join with another :class:`DataFrame`. For each row on the
+        left (query side), returns up to ``numResults`` rows from ``other`` (base side), ranked
+        by ``rankingExpression``.
+
+        .. versionadded:: 4.2.0
+
+        Parameters
+        ----------
+        other : :class:`DataFrame`
+            Right (base side) of the join - the candidate pool searched for each row of this
+            DataFrame.
+        rankingExpression : :class:`Column`
+            Scalar expression used to rank candidate rows on the right side.
+        numResults : int
+            Maximum number of matches per query row. Must be between 1 and 100000.
+        direction : str
+            ``"distance"`` (smallest values first) or ``"similarity"`` (largest values first).
+        joinType : str, optional
+            Default ``inner``. Must be one of: ``inner``, ``left``, ``leftouter``,
+            ``left_outer``.
+        mode : str, optional
+            Default ``approx``. Must be one of: ``approx``, ``exact``. ``approx`` allows the
+            optimizer to use indexed or other approximate strategies when available; ``exact``
+            forces brute-force evaluation and requires the ranking expression to be
+            deterministic.
+
+        Returns
+        -------
+        :class:`DataFrame`
+            Joined DataFrame.
+
+        Examples
+        --------
+        >>> from pyspark.sql import functions as sf
+        >>> users = spark.createDataFrame(
+        ...     [(1, 10.0), (2, 20.0), (3, 30.0)], ["user_id", "score"])
+        >>> products = spark.createDataFrame(
+        ...     [("A", 11.0), ("B", 22.0), ("C", 5.0)], ["product", "score"])
+        >>> users.nearestByJoin(
+        ...     products, -sf.abs(users.score - products.score), 1, "similarity"
+        ... ).select("user_id", "product").orderBy("user_id").show()
+        +-------+-------+
+        |user_id|product|
+        +-------+-------+
+        |      1|      A|
+        |      2|      B|
+        |      3|      B|
+        +-------+-------+
+        """
+        ...
+
     # TODO(SPARK-22947): Fix the DataFrame API.
     @dispatch_df_method
     def _joinAsOf(

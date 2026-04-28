@@ -912,6 +912,62 @@ abstract class Dataset[T] extends Serializable {
    */
   def lateralJoin(right: Dataset[_], joinExprs: Column, joinType: String): DataFrame
 
+  /**
+   * Nearest-by top-K ranking join with another `DataFrame`. For each row on the left (query
+   * side), returns up to `numResults` rows from `right` (base side), ranked by
+   * `rankingExpression`.
+   *
+   * Equivalent SQL:
+   * {{{
+   *   left INNER JOIN right APPROX NEAREST numResults BY SIMILARITY rankingExpression
+   * }}}
+   *
+   * @param right
+   *   Right (base side) of the join - the candidate pool searched for each row of this Dataset.
+   * @param rankingExpression
+   *   Scalar expression used to rank candidate rows.
+   * @param numResults
+   *   Maximum number of matches per query row. Must be between 1 and 100000.
+   * @param direction
+   *   `"distance"` (smallest value first) or `"similarity"` (largest value first).
+   * @group untypedrel
+   * @since 4.2.0
+   */
+  def nearestByJoin(
+      right: Dataset[_],
+      rankingExpression: Column,
+      numResults: Int,
+      direction: String): DataFrame
+
+  /**
+   * Nearest-by top-K ranking join with another `DataFrame`.
+   *
+   * @param right
+   *   Right (base side) of the join - the candidate pool searched for each row of this Dataset.
+   * @param rankingExpression
+   *   Scalar expression used to rank candidate rows.
+   * @param numResults
+   *   Maximum number of matches per query row. Must be between 1 and 100000.
+   * @param joinType
+   *   Type of join to perform. Default `inner`. Must be one of: `inner`, `left`, `leftouter`,
+   *   `left_outer`.
+   * @param mode
+   *   Search algorithm contract. Must be one of: `approx`, `exact`. `approx` allows the optimizer
+   *   to use indexed or other approximate strategies when available; `exact` forces brute-force
+   *   evaluation and requires the ranking expression to be deterministic.
+   * @param direction
+   *   `"distance"` (smallest value first) or `"similarity"` (largest value first).
+   * @group untypedrel
+   * @since 4.2.0
+   */
+  def nearestByJoin(
+      right: Dataset[_],
+      rankingExpression: Column,
+      numResults: Int,
+      joinType: String,
+      mode: String,
+      direction: String): DataFrame
+
   protected def sortInternal(global: Boolean, sortExprs: Seq[Column]): Dataset[T]
 
   /**

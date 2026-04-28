@@ -421,6 +421,45 @@ class Dataset[T] private[sql] (
     lateralJoin(right, Some(joinExprs), joinType)
   }
 
+  private def nearestByJoinImpl(
+      right: sql.Dataset[_],
+      rankingExpression: Column,
+      numResults: Int,
+      joinType: String,
+      mode: String,
+      direction: String): DataFrame = {
+    sparkSession.newDataFrame(Seq(rankingExpression)) { builder =>
+      builder.getNearestByJoinBuilder
+        .setLeft(plan.getRoot)
+        .setRight(right.plan.getRoot)
+        .setRankingExpression(toExpr(rankingExpression))
+        .setNumResults(numResults)
+        .setJoinType(joinType)
+        .setMode(mode)
+        .setDirection(direction)
+    }
+  }
+
+  /** @inheritdoc */
+  def nearestByJoin(
+      right: sql.Dataset[_],
+      rankingExpression: Column,
+      numResults: Int,
+      direction: String): DataFrame = {
+    nearestByJoinImpl(right, rankingExpression, numResults, "inner", "approx", direction)
+  }
+
+  /** @inheritdoc */
+  def nearestByJoin(
+      right: sql.Dataset[_],
+      rankingExpression: Column,
+      numResults: Int,
+      joinType: String,
+      mode: String,
+      direction: String): DataFrame = {
+    nearestByJoinImpl(right, rankingExpression, numResults, joinType, mode, direction)
+  }
+
   override protected def sortInternal(global: Boolean, sortCols: Seq[Column]): Dataset[T] = {
     val sortExprs = sortCols.map { c =>
       ColumnNodeToProtoConverter(c.sortOrder).getSortOrder

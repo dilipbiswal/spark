@@ -2420,3 +2420,50 @@ object AsOfJoin {
     }
   }
 }
+
+/**
+ * A logical plan for nearest-by top-K ranking join. For each row on the left side it returns up to
+ * `numResults` rows from the right side ordered by `rankingExpression`:
+ *   - `NearestByDistance`: smallest values of `rankingExpression` first.
+ *   - `NearestBySimilarity`: largest values of `rankingExpression` first.
+ *
+ * When `approx` is true, the optimizer is allowed to use approximate strategies such as indexed
+ * nearest-neighbor search. When `approx` is false (EXACT), brute-force evaluation is used and the
+ * ranking expression must be deterministic.
+ */
+case class NearestByJoin(
+    left: LogicalPlan,
+    right: LogicalPlan,
+    joinType: JoinType,
+    approx: Boolean,
+    numResults: Int,
+    rankingExpression: Expression,
+    direction: NearestByDirection) extends BinaryNode {
+
+  require(Seq(Inner, LeftOuter).contains(joinType),
+    s"Unsupported nearest-by join type $joinType")
+
+  override def output: Seq[Attribute] = {
+    joinType match {
+      case LeftOuter =>
+        left.output ++ right.output.map(_.withNullability(true))
+      case _ =>
+        left.output ++ right.output
+    }
+  }
+
+  def duplicateResolved: Boolean = left.outputSet.intersect(right.outputSet).isEmpty
+
+  override lazy val resolved: Boolean = {
+    childrenResolved &&
+      expressions.forall(_.resolved) &&
+      duplicateResolved
+  }
+
+  final override val nodePatterns: Seq[TreePattern] = Seq(NEAREST_BY_JOIN)
+
+  override protected def withNewChildrenInternal(
+      newLeft: LogicalPlan, newRight: LogicalPlan): NearestByJoin = {
+    copy(left = newLeft, right = newRight)
+  }
+}
