@@ -2912,9 +2912,9 @@ class DataFrame:
         >>> users = spark.createDataFrame(
         ...     [(1, 10.0), (2, 20.0), (3, 30.0)], ["user_id", "score"])
         >>> products = spark.createDataFrame(
-        ...     [("A", 11.0), ("B", 22.0), ("C", 5.0)], ["product", "score"])
+        ...     [("A", 11.0), ("B", 22.0), ("C", 5.0)], ["product", "pscore"])
         >>> users.nearestByJoin(
-        ...     products, -sf.abs(users.score - products.score), 1, "similarity"
+        ...     products, -sf.abs(users.score - products.pscore), 1, "similarity"
         ... ).select("user_id", "product").orderBy("user_id").show()
         +-------+-------+
         |user_id|product|
